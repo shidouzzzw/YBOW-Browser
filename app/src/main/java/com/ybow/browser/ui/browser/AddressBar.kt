@@ -1,5 +1,7 @@
 package com.ybow.browser.ui.browser
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -9,6 +11,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
@@ -19,7 +22,6 @@ import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.WarningAmber
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -34,8 +36,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusChanged
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
@@ -62,6 +64,7 @@ fun AddressBar(
     var focused by remember { mutableStateOf(false) }
     val keyboard = LocalSoftwareKeyboardController.current
     val focusManager = LocalFocusManager.current
+    val colors = MaterialTheme.colorScheme
 
     val displayUrl = UrlTools.displayUrl(tab?.url)
 
@@ -79,9 +82,9 @@ fun AddressBar(
         else -> Icons.Rounded.WarningAmber
     }
     val iconTint = when {
-        showHomeIcon -> MaterialTheme.colorScheme.primary
-        secure -> MaterialTheme.colorScheme.primary
-        else -> MaterialTheme.colorScheme.tertiary
+        showHomeIcon -> colors.primary
+        secure -> colors.primary
+        else -> colors.tertiary
     }
 
     fun submit() {
@@ -97,36 +100,46 @@ fun AddressBar(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 10.dp, vertical = 8.dp),
+                .padding(start = 14.dp, end = 10.dp, top = 8.dp, bottom = 6.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Surface(
-                shape = RoundedCornerShape(24.dp),
-                color = MaterialTheme.colorScheme.surfaceVariant,
+                shape = RoundedCornerShape(26.dp),
+                color = colors.surface,
+                border = BorderStroke(1.dp, colors.outlineVariant.copy(alpha = 0.7f)),
+                shadowElevation = 6.dp,
                 modifier = Modifier
                     .weight(1f)
-                    .height(46.dp),
+                    .height(48.dp),
             ) {
                 Row(
-                    modifier = Modifier.padding(start = 14.dp, end = 4.dp),
+                    modifier = Modifier.padding(start = 12.dp, end = 4.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Icon(
-                        imageVector = icon,
-                        contentDescription = null,
-                        tint = iconTint,
-                        modifier = Modifier.size(17.dp),
-                    )
+                    Box(
+                        modifier = Modifier
+                            .size(26.dp)
+                            .clip(CircleShape)
+                            .background(iconTint.copy(alpha = 0.12f)),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            imageVector = icon,
+                            contentDescription = null,
+                            tint = iconTint,
+                            modifier = Modifier.size(14.dp),
+                        )
+                    }
                     Spacer(Modifier.width(10.dp))
                     BasicTextField(
                         value = value,
                         onValueChange = { value = it },
                         singleLine = true,
                         textStyle = MaterialTheme.typography.bodyLarge.copy(
-                            color = MaterialTheme.colorScheme.onSurface,
+                            color = colors.onSurface,
                             fontSize = 15.sp,
                         ),
-                        cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+                        cursorBrush = SolidColor(colors.primary),
                         keyboardOptions = KeyboardOptions(
                             keyboardType = KeyboardType.Uri,
                             imeAction = ImeAction.Go,
@@ -150,7 +163,7 @@ fun AddressBar(
                                     Text(
                                         text = stringResource(R.string.address_bar_hint),
                                         style = MaterialTheme.typography.bodyLarge,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        color = colors.onSurfaceVariant,
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis,
                                     )
@@ -164,7 +177,7 @@ fun AddressBar(
                             Icon(
                                 imageVector = Icons.Rounded.Close,
                                 contentDescription = stringResource(R.string.action_stop),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                tint = colors.onSurfaceVariant,
                                 modifier = Modifier.size(16.dp),
                             )
                         }
@@ -172,28 +185,45 @@ fun AddressBar(
                 }
             }
 
-            Spacer(Modifier.width(4.dp))
+            Spacer(Modifier.width(8.dp))
 
-            IconButton(onClick = onReload) {
-                Icon(
-                    imageVector = Icons.Rounded.Refresh,
-                    contentDescription = stringResource(R.string.action_reload),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+            Surface(
+                onClick = onReload,
+                shape = CircleShape,
+                color = colors.surface,
+                border = BorderStroke(1.dp, colors.outlineVariant.copy(alpha = 0.7f)),
+                shadowElevation = 6.dp,
+                modifier = Modifier.size(44.dp),
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = Icons.Rounded.Refresh,
+                        contentDescription = stringResource(R.string.action_reload),
+                        tint = colors.onSurfaceVariant,
+                        modifier = Modifier.size(19.dp),
+                    )
+                }
             }
         }
 
-        if (tab?.isLoading == true) {
-            LinearProgressIndicator(
-                progress = { (tab.progress.coerceIn(0, 100)) / 100f },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(2.dp),
-                color = MaterialTheme.colorScheme.primary,
-                trackColor = Color.Transparent,
-            )
-        } else {
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(3.dp)
+                .padding(horizontal = 24.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            if (tab?.isLoading == true) {
+                LinearProgressIndicator(
+                    progress = { (tab.progress.coerceIn(0, 100)) / 100f },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(3.dp)
+                        .clip(CircleShape),
+                    color = colors.primary,
+                    trackColor = colors.primary.copy(alpha = 0.12f),
+                )
+            }
         }
     }
 }

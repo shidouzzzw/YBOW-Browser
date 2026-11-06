@@ -1,5 +1,6 @@
 package com.ybow.browser.ui.tabs
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -25,7 +26,6 @@ import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Tab
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -49,6 +49,7 @@ fun TabsScreen(
     onBack: () -> Unit,
 ) {
     val tabs = viewModel.tabs.toList()
+    val colors = MaterialTheme.colorScheme
 
     Column(
         modifier = Modifier
@@ -60,14 +61,32 @@ fun TabsScreen(
             subtitle = stringResource(R.string.tabs_count, tabs.size),
             onBack = onBack,
             actions = {
-                IconButton(onClick = {
-                    viewModel.openNewTab()
-                    onBack()
-                }) {
-                    Icon(
-                        imageVector = Icons.Rounded.Add,
-                        contentDescription = stringResource(R.string.menu_new_tab),
-                    )
+                Surface(
+                    onClick = {
+                        viewModel.openNewTab()
+                        onBack()
+                    },
+                    shape = RoundedCornerShape(16.dp),
+                    color = colors.primary,
+                    modifier = Modifier.height(40.dp),
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 14.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.Add,
+                            contentDescription = stringResource(R.string.menu_new_tab),
+                            tint = colors.onPrimary,
+                            modifier = Modifier.size(17.dp),
+                        )
+                        Spacer(Modifier.size(6.dp))
+                        Text(
+                            text = stringResource(R.string.menu_new_tab),
+                            style = MaterialTheme.typography.labelLarge,
+                            color = colors.onPrimary,
+                        )
+                    }
                 }
             },
         )
@@ -84,7 +103,7 @@ fun TabsScreen(
 
         LazyVerticalGrid(
             columns = GridCells.Fixed(2),
-            contentPadding = PaddingValues(14.dp),
+            contentPadding = PaddingValues(start = 14.dp, end = 14.dp, top = 10.dp, bottom = 26.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
             modifier = Modifier
@@ -113,53 +132,65 @@ private fun TabCard(
     onClick: () -> Unit,
     onClose: () -> Unit,
 ) {
+    val colors = MaterialTheme.colorScheme
+
     Surface(
         onClick = onClick,
-        shape = RoundedCornerShape(20.dp),
-        color = if (isActive) {
-            MaterialTheme.colorScheme.primaryContainer
-        } else {
-            MaterialTheme.colorScheme.surfaceVariant
-        },
+        shape = MaterialTheme.shapes.large,
+        color = colors.surface,
+        border = BorderStroke(
+            if (isActive) 1.5.dp else 1.dp,
+            if (isActive) colors.primary.copy(alpha = 0.55f) else colors.outlineVariant.copy(alpha = 0.6f),
+        ),
         modifier = Modifier
             .fillMaxWidth()
-            .height(150.dp),
+            .height(156.dp),
     ) {
         Column(modifier = Modifier.padding(start = 14.dp, end = 6.dp, top = 12.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                FaviconBadge(url = tab.url, favicon = tab.favicon, size = 26.dp)
+                FaviconBadge(url = tab.url, favicon = tab.favicon, size = 28.dp)
                 Spacer(Modifier.weight(1f))
                 if (tab.isIncognito) {
                     Box(
                         modifier = Modifier
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.16f))
+                            .clip(RoundedCornerShape(9.dp))
+                            .background(colors.primary.copy(alpha = 0.14f))
                             .padding(horizontal = 8.dp, vertical = 3.dp),
                     ) {
                         Text(
                             text = stringResource(R.string.tabs_incognito_badge),
                             style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.primary,
+                            color = colors.primary,
                         )
                     }
                 }
-                IconButton(onClick = onClose, modifier = Modifier.size(30.dp)) {
-                    Icon(
-                        imageVector = Icons.Rounded.Close,
-                        contentDescription = stringResource(R.string.action_close),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(16.dp),
-                    )
+                Surface(
+                    onClick = onClose,
+                    shape = RoundedCornerShape(10.dp),
+                    color = colors.surfaceVariant.copy(alpha = 0.6f),
+                    modifier = Modifier
+                        .padding(start = 4.dp)
+                        .size(28.dp),
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = Icons.Rounded.Close,
+                            contentDescription = stringResource(R.string.action_close),
+                            tint = colors.onSurfaceVariant,
+                            modifier = Modifier.size(15.dp),
+                        )
+                    }
                 }
             }
 
-            Spacer(Modifier.height(10.dp))
+            Spacer(Modifier.height(12.dp))
 
             Text(
                 text = tab.title.ifBlank {
                     stringResource(R.string.shortcut_new_tab_short)
                 },
                 style = MaterialTheme.typography.titleMedium,
+                color = colors.onSurface,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.padding(end = 8.dp),
@@ -170,7 +201,7 @@ private fun TabCard(
             Text(
                 text = com.ybow.browser.util.UrlTools.displayUrl(tab.url),
                 style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = colors.onSurfaceVariant,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier
