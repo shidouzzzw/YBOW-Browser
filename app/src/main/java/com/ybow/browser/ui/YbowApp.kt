@@ -54,16 +54,16 @@ fun YbowApp(viewModel: BrowserViewModel) {
         AnimatedVisibility(
             visible = screen != YbowScreen.Browser,
             enter = fadeIn(
-                animationSpec = tween(YbowMotion.DurMillis, easing = YbowMotion.Ease),
+                animationSpec = tween(YbowMotion.DurMillis),
             ) + slideInVertically(
-                animationSpec = tween(YbowMotion.SlowMillis, easing = YbowMotion.Ease),
-                initialOffsetY = { it / 14 },
+                animationSpec = tween(YbowMotion.DurMillis, easing = YbowMotion.Ease),
+                initialOffsetY = { it / 16 },
             ),
             exit = fadeOut(
-                animationSpec = tween(YbowMotion.DurMillis, easing = YbowMotion.Ease),
+                animationSpec = tween(YbowMotion.FastMillis),
             ) + slideOutVertically(
-                animationSpec = tween(YbowMotion.SlowMillis, easing = YbowMotion.Ease),
-                targetOffsetY = { it / 14 },
+                animationSpec = tween(YbowMotion.FastMillis, easing = YbowMotion.Ease),
+                targetOffsetY = { it / 16 },
             ),
         ) {
             Surface(

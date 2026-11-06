@@ -27,9 +27,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -99,9 +97,9 @@ fun TabsScreen(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 6.dp)
+                    .padding(vertical = 5.dp)
                     .rise(rowIndex),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 rowTabs.forEach { tab ->
                     TabCard(
@@ -119,7 +117,7 @@ fun TabsScreen(
             }
         }
 
-        Spacer(Modifier.height(12.dp))
+        Spacer(Modifier.height(10.dp))
 
         NewTabCard(palette = palette, onClick = onNewTab)
     }
@@ -138,37 +136,37 @@ private fun TabCard(
     val source = remember { MutableInteractionSource() }
     val exit by animateFloatAsState(
         targetValue = if (closing) 1f else 0f,
-        animationSpec = tween(YbowMotion.CloseTabMillis.coerceAtLeast(1).toInt()),
+        animationSpec = tween(YbowMotion.CloseTabMillis.toInt(), easing = YbowMotion.Ease),
         label = "tabExit",
     )
 
     Column(
         modifier = modifier
             .graphicsLayer {
-                scaleX = 1f - 0.3f * exit
-                scaleY = 1f - 0.3f * exit
+                scaleX = 1f - 0.25f * exit
+                scaleY = 1f - 0.25f * exit
                 alpha = 1f - exit
             }
-            .pressScale(source, YbowMotion.PressTabCard)
-            .clip(RoundedCornerShape(22.dp))
+            .pressScale(source, YbowMotion.PressTabCard, highlight = true)
+            .clip(RoundedCornerShape(20.dp))
             .background(palette.card)
             .border(
-                width = if (isActive) 1.5.dp else 1.dp,
+                width = if (isActive) 1.6.dp else 1.dp,
                 color = if (isActive) palette.accent else palette.line,
-                shape = RoundedCornerShape(22.dp),
+                shape = RoundedCornerShape(20.dp),
             )
             .combinedClickable(
                 interactionSource = source,
                 indication = null,
                 onClick = onSelect,
             )
-            .padding(10.dp),
+            .padding(9.dp),
     ) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(92.dp)
-                .clip(RoundedCornerShape(14.dp))
+                .clip(RoundedCornerShape(13.dp))
                 .then(
                     if (tab.hasPage) {
                         Modifier.background(palette.bg)
@@ -177,9 +175,9 @@ private fun TabCard(
                             Brush.linearGradient(
                                 listOf(
                                     if (tab.isIncognito) {
-                                        YbowColors.LogoPink.copy(alpha = 0.10f)
+                                        YbowColors.LogoPink.copy(alpha = 0.12f)
                                     } else {
-                                        palette.accent.copy(alpha = 0.09f)
+                                        palette.accent.copy(alpha = 0.10f)
                                     },
                                     palette.bg,
                                 ),
@@ -219,7 +217,7 @@ private fun TabCard(
         }
 
         Row(
-            modifier = Modifier.padding(top = 10.dp, start = 4.dp, end = 4.dp),
+            modifier = Modifier.padding(top = 9.dp, start = 3.dp, end = 3.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
@@ -228,7 +226,7 @@ private fun TabCard(
                 } else {
                     "Ana ekran"
                 },
-                style = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.SemiBold),
+                style = TextStyle(fontSize = 13.5.sp, fontWeight = FontWeight.SemiBold),
                 color = palette.text,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
@@ -240,7 +238,7 @@ private fun TabCard(
                     .size(24.dp)
                     .pressScale(closeSource, YbowMotion.PressPillButton)
                     .clip(CircleShape)
-                    .background(Color.Black.copy(alpha = 0.35f))
+                    .background(Color.Black.copy(alpha = 0.40f))
                     .combinedClickable(
                         interactionSource = closeSource,
                         indication = null,
@@ -263,11 +261,11 @@ private fun TabCard(
                 tab.isIncognito -> "Gizli sekme · ybow://ana"
                 else -> "ybow://ana"
             },
-            style = TextStyle(fontSize = 12.sp),
+            style = TextStyle(fontSize = 11.5.sp),
             color = if (tab.isIncognito) palette.pink else palette.muted,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.padding(top = 2.dp, start = 4.dp, end = 4.dp),
+            modifier = Modifier.padding(top = 2.dp, start = 3.dp, end = 3.dp),
         )
     }
 }
@@ -278,10 +276,10 @@ private fun NewTabCard(palette: YbowPalette, onClick: () -> Unit) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(120.dp)
-            .pressScale(source, YbowMotion.PressNewTab)
-            .clip(RoundedCornerShape(22.dp))
-            .border(1.dp, palette.line, RoundedCornerShape(22.dp))
+            .height(110.dp)
+            .pressScale(source, YbowMotion.PressNewTab, highlight = true)
+            .clip(RoundedCornerShape(20.dp))
+            .border(1.dp, palette.line, RoundedCornerShape(20.dp))
             .combinedClickable(
                 interactionSource = source,
                 indication = null,

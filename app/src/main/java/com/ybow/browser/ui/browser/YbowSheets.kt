@@ -7,8 +7,6 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
@@ -30,6 +28,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -46,12 +45,15 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -72,19 +74,20 @@ sealed interface BrowserSheet {
     data object Menu : BrowserSheet
     data class Edit(val shortcut: Shortcut?) : BrowserSheet
     data class Item(val shortcut: Shortcut) : BrowserSheet
+    data class Search(val initialUrl: String) : BrowserSheet
 }
 
 @Composable
 fun SheetScrim(visible: Boolean, onDismiss: () -> Unit) {
     AnimatedVisibility(
         visible = visible,
-        enter = fadeIn(tween(YbowMotion.DurMillis)),
-        exit = fadeOut(tween(YbowMotion.DurMillis)),
+        enter = fadeIn(tween(180)),
+        exit = fadeOut(tween(160)),
     ) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color.Black.copy(alpha = 0.55f))
+                .background(Color.Black.copy(alpha = 0.62f))
                 .combinedClickable(
                     interactionSource = remember { MutableInteractionSource() },
                     indication = null,
@@ -103,9 +106,13 @@ fun SheetSurface(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(topStart = 30.dp, topEnd = 30.dp))
-            .background(palette.card)
-            .border(1.dp, palette.line, RoundedCornerShape(topStart = 30.dp, topEnd = 30.dp))
+            .clip(RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp))
+            .background(
+                Brush.verticalGradient(
+                    listOf(palette.card, palette.cardRaised),
+                ),
+            )
+            .border(1.dp, palette.line, RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp))
             .navigationBarsPadding()
             .imePadding()
             .padding(horizontal = 20.dp)
@@ -116,11 +123,138 @@ fun SheetSurface(
                 .width(40.dp)
                 .height(4.dp)
                 .clip(CircleShape)
-                .background(palette.text.copy(alpha = 0.2f))
+                .background(palette.text.copy(alpha = 0.22f))
                 .align(Alignment.CenterHorizontally),
         )
         Spacer(Modifier.height(16.dp))
         content()
+    }
+}
+
+/**
+ * Omnibox sheet: lets the user enter a URL or search query without leaving their
+ * current webpage until they actually submit.
+ */
+@Composable
+fun OmniboxSheet(
+    initialUrl: String,
+    onDismiss: () -> Unit,
+    onSubmit: (String) -> Unit,
+) {
+    val palette = LocalYbowPalette.current
+    val focusRequester = remember { FocusRequester() }
+    var text by remember { mutableStateOf(if (UrlTools.isHttpUrl(initialUrl)) initialUrl else "") }
+
+    LaunchedEffect(Unit) {
+        delay(260)
+        runCatching { focusRequester.requestFocus() }
+    }
+
+    SheetSurface {
+        Text(
+            text = "Ara veya adres yaz",
+            style = TextStyle(fontSize = 20.sp, fontWeight = FontWeight.Bold),
+            color = palette.text,
+        )
+        Spacer(Modifier.height(14.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .height(52.dp)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(palette.bg)
+                    .border(1.2.dp, palette.accent, RoundedCornerShape(16.dp))
+                    .padding(horizontal = 14.dp),
+                contentAlignment = Alignment.CenterStart,
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(
+                        imageVector = YbowIcons.Search,
+                        contentDescription = null,
+                        tint = palette.accent,
+                        modifier = Modifier.size(20.dp),
+                    )
+                    Spacer(Modifier.width(10.dp))
+                    BasicTextField(
+                        value = text,
+                        onValueChange = { text = it },
+                        singleLine = true,
+                        textStyle = TextStyle(fontSize = 16.sp, color = palette.text),
+                        cursorBrush = SolidColor(palette.accent),
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Go),
+                        keyboardActions = KeyboardActions(onGo = {
+                            val t = text.trim()
+                            if (t.isNotEmpty()) onSubmit(t)
+                        }),
+                        modifier = Modifier
+                            .weight(1f)
+                            .focusRequester(focusRequester),
+                        decorationBox = { inner ->
+                            if (text.isEmpty()) {
+                                Text(
+                                    text = "ornek.com veya kelime...",
+                                    style = TextStyle(fontSize = 15.sp),
+                                    color = palette.muted,
+                                )
+                            }
+                            inner()
+                        },
+                    )
+                    if (text.isNotEmpty()) {
+                        Box(
+                            modifier = Modifier
+                                .size(32.dp)
+                                .clip(CircleShape)
+                                .combinedClickable(
+                                    interactionSource = remember { MutableInteractionSource() },
+                                    indication = null,
+                                    onClick = { text = "" },
+                                ),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Icon(
+                                imageVector = YbowIcons.Close,
+                                contentDescription = "Temizle",
+                                tint = palette.muted,
+                                modifier = Modifier.size(14.dp),
+                            )
+                        }
+                    }
+                }
+            }
+            Spacer(Modifier.width(10.dp))
+            val goSource = remember { MutableInteractionSource() }
+            Box(
+                modifier = Modifier
+                    .size(52.dp)
+                    .pressScale(goSource, YbowMotion.PressGo, highlight = true)
+                    .clip(CircleShape)
+                    .background(palette.accent)
+                    .combinedClickable(
+                        interactionSource = goSource,
+                        indication = null,
+                        onClick = {
+                            val t = text.trim()
+                            if (t.isNotEmpty()) onSubmit(t)
+                        },
+                    ),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = YbowIcons.Arrow,
+                    contentDescription = "Git",
+                    tint = palette.bg,
+                    modifier = Modifier.size(22.dp),
+                )
+            }
+        }
     }
 }
 
@@ -213,6 +347,8 @@ fun ShortcutSheet(
                 },
                 style = TextStyle(fontSize = 13.5.sp),
                 color = palette.muted,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
         }
 
@@ -283,8 +419,16 @@ fun ShortcutOptionsSheet(
                     text = shortcut.title,
                     style = TextStyle(fontSize = 18.sp, fontWeight = FontWeight.Bold),
                     color = palette.text,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                 )
-                Text(host, style = TextStyle(fontSize = 13.5.sp), color = palette.muted)
+                Text(
+                    host,
+                    style = TextStyle(fontSize = 13.5.sp),
+                    color = palette.muted,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
             }
         }
         Spacer(Modifier.height(18.dp))
@@ -314,6 +458,8 @@ fun ShortcutOptionsSheet(
 
 @Composable
 fun MenuSheet(
+    hasPage: Boolean,
+    isBookmarked: Boolean,
     onDismiss: () -> Unit,
     onNewTab: () -> Unit,
     onIncognitoTab: () -> Unit,
@@ -321,6 +467,9 @@ fun MenuSheet(
     onHistory: () -> Unit,
     onDownloads: () -> Unit,
     onSettings: () -> Unit,
+    onToggleBookmark: () -> Unit,
+    onShare: () -> Unit,
+    onCopy: () -> Unit,
 ) {
     val palette = LocalYbowPalette.current
     val items = listOf(
@@ -333,28 +482,59 @@ fun MenuSheet(
     )
 
     SheetSurface {
+        if (hasPage) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 12.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                PageActionButton(
+                    icon = YbowIcons.Bookmark,
+                    label = if (isBookmarked) "Yer iminden çıkar" else "Yer imlerine ekle",
+                    tint = if (isBookmarked) palette.accent else palette.text,
+                    modifier = Modifier.weight(1f),
+                    onClick = onToggleBookmark,
+                )
+                PageActionButton(
+                    icon = YbowIcons.Share,
+                    label = "Paylaş",
+                    tint = palette.text,
+                    modifier = Modifier.weight(1f),
+                    onClick = onShare,
+                )
+                PageActionButton(
+                    icon = YbowIcons.Copy,
+                    label = "Kopyala",
+                    tint = palette.text,
+                    modifier = Modifier.weight(1f),
+                    onClick = onCopy,
+                )
+            }
+        }
+
         items.chunked(3).forEach { row ->
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 6.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    .padding(vertical = 5.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 row.forEach { (label, icon, action) ->
                     val source = remember { MutableInteractionSource() }
                     Column(
                         modifier = Modifier
                             .weight(1f)
-                            .pressScale(source, YbowMotion.PressMenu)
-                            .clip(RoundedCornerShape(20.dp))
-                            .background(palette.bg)
-                            .border(1.dp, palette.line, RoundedCornerShape(20.dp))
+                            .pressScale(source, YbowMotion.PressMenu, highlight = true)
+                            .clip(RoundedCornerShape(18.dp))
+                            .background(palette.cardRaised)
+                            .border(1.dp, palette.line, RoundedCornerShape(18.dp))
                             .combinedClickable(
                                 interactionSource = source,
                                 indication = null,
                                 onClick = action,
                             )
-                            .padding(vertical = 16.dp, horizontal = 4.dp),
+                            .padding(vertical = 15.dp, horizontal = 4.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
                         Icon(
@@ -366,7 +546,7 @@ fun MenuSheet(
                         Spacer(Modifier.height(8.dp))
                         Text(
                             text = label,
-                            style = TextStyle(fontSize = 13.sp),
+                            style = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.Medium),
                             color = palette.text,
                         )
                     }
@@ -377,15 +557,58 @@ fun MenuSheet(
 }
 
 @Composable
+private fun PageActionButton(
+    icon: ImageVector,
+    label: String,
+    tint: Color,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit,
+) {
+    val palette = LocalYbowPalette.current
+    val source = remember { MutableInteractionSource() }
+    Row(
+        modifier = modifier
+            .height(48.dp)
+            .pressScale(source, YbowMotion.PressButton, highlight = true)
+            .clip(RoundedCornerShape(14.dp))
+            .background(palette.cardRaised)
+            .border(1.dp, palette.line, RoundedCornerShape(14.dp))
+            .combinedClickable(
+                interactionSource = source,
+                indication = null,
+                onClick = onClick,
+            )
+            .padding(horizontal = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.Center,
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = tint,
+            modifier = Modifier.size(17.dp),
+        )
+        Spacer(Modifier.width(6.dp))
+        Text(
+            text = label,
+            style = TextStyle(fontSize = 12.5.sp, fontWeight = FontWeight.Medium),
+            color = palette.text,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
+}
+
+@Composable
 fun ToastBanner(text: String?, modifier: Modifier = Modifier) {
     val palette = LocalYbowPalette.current
     AnimatedVisibility(
         visible = text != null,
-        enter = fadeIn(tween(YbowMotion.DurMillis)) + slideInVertically(
-            animationSpec = tween(YbowMotion.DurMillis, easing = YbowMotion.Spring),
-            initialOffsetY = { it / 2 },
+        enter = fadeIn(tween(160)) + androidx.compose.animation.slideInVertically(
+            animationSpec = tween(YbowMotion.FastMillis),
+            initialOffsetY = { it / 3 },
         ),
-        exit = fadeOut(tween(YbowMotion.DurMillis)),
+        exit = fadeOut(tween(140)),
         modifier = modifier,
     ) {
         Box(
@@ -398,13 +621,11 @@ fun ToastBanner(text: String?, modifier: Modifier = Modifier) {
             Text(
                 text = text.orEmpty(),
                 style = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.SemiBold),
-                color = YbowColorsBg,
+                color = palette.bg,
             )
         }
     }
 }
-
-private val YbowColorsBg = Color(0xFF0B1215)
 
 @Composable
 private fun SheetField(
@@ -460,7 +681,7 @@ private fun SheetButton(
     label: String,
     primary: Boolean,
     modifier: Modifier = Modifier,
-    icon: androidx.compose.ui.graphics.vector.ImageVector? = null,
+    icon: ImageVector? = null,
     danger: Boolean = false,
     onClick: () -> Unit,
 ) {
@@ -470,7 +691,7 @@ private fun SheetButton(
         modifier = modifier
             .fillMaxWidth()
             .height(52.dp)
-            .pressScale(source, YbowMotion.PressButton)
+            .pressScale(source, YbowMotion.PressButton, highlight = true)
             .clip(RoundedCornerShape(16.dp))
             .background(if (primary) palette.accent else palette.bg)
             .border(1.dp, if (primary) Color.Transparent else palette.line, RoundedCornerShape(16.dp))
@@ -499,7 +720,7 @@ private fun SheetButton(
     }
 }
 
-/** Host parser matching the mock: strips scheme, www and any path or query. */
+/** Host parser: strips scheme, www and any path or query. */
 fun parseHost(raw: String): String {
     var value = raw.trim().lowercase()
     value = value.removePrefix("https://").removePrefix("http://").removePrefix("www.")

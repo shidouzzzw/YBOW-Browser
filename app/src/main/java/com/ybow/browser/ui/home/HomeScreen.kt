@@ -2,6 +2,7 @@
 
 package com.ybow.browser.ui.home
 
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloat
@@ -58,7 +59,6 @@ import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipPath
-import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
@@ -70,14 +70,13 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.unit.Dp
 import com.ybow.browser.R
 import com.ybow.browser.data.local.Shortcut
 import com.ybow.browser.ui.theme.LocalYbowPalette
-import com.ybow.browser.ui.theme.YbowColors
-import com.ybow.browser.ui.theme.YbowMotion
 import com.ybow.browser.ui.theme.TextWordmark
+import com.ybow.browser.ui.theme.YbowColors
 import com.ybow.browser.ui.theme.YbowIcons
+import com.ybow.browser.ui.theme.YbowMotion
 import com.ybow.browser.ui.theme.pressScale
 import com.ybow.browser.ui.theme.rise
 import com.ybow.browser.ui.theme.siteIconBackground
@@ -85,8 +84,8 @@ import com.ybow.browser.ui.theme.siteIconForeground
 import com.ybow.browser.util.UrlTools
 
 /**
- * Home screen ported one to one from the Ybow design: brand block, focusable search
- * pill, engine switcher, quick access grid, incognito card.
+ * Home screen: brand block with animated wave logo, focusable search pill,
+ * engine switcher, quick access shortcut grid and incognito card.
  */
 @Composable
 fun HomeScreen(
@@ -124,12 +123,12 @@ fun HomeScreen(
             .background(palette.bg)
             .verticalScroll(scroll)
             .padding(horizontal = 20.dp)
-            .padding(top = 60.dp, bottom = 128.dp),
+            .padding(top = 56.dp, bottom = 128.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         BrandBlock(palette = palette, incognito = incognito, modifier = Modifier.rise(0))
 
-        Spacer(Modifier.height(34.dp))
+        Spacer(Modifier.height(30.dp))
 
         SearchPill(
             palette = palette,
@@ -145,7 +144,7 @@ fun HomeScreen(
                     onSearch(text)
                 }
             },
-            modifier = Modifier.rise(3),
+            modifier = Modifier.rise(2),
         )
 
         EngineRow(
@@ -154,20 +153,20 @@ fun HomeScreen(
             onCycle = onCycleEngine,
             modifier = Modifier
                 .fillMaxWidth()
-                .rise(4),
+                .rise(3),
         )
 
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 34.dp, bottom = 16.dp)
-                .rise(5),
+                .padding(top = 30.dp, bottom = 14.dp)
+                .rise(4),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
                 text = stringResource(R.string.home_quick_access),
                 style = TextStyle(
-                    fontSize = 21.sp,
+                    fontSize = 20.sp,
                     fontWeight = FontWeight.Bold,
                     letterSpacing = (-0.2).sp,
                 ),
@@ -190,8 +189,8 @@ fun HomeScreen(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(vertical = 10.dp)
-                        .rise(6),
+                        .padding(vertical = 8.dp)
+                        .rise(5),
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
                     rowItems.forEach { shortcut ->
@@ -216,8 +215,8 @@ fun HomeScreen(
             onToggle = onToggleIncognito,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 30.dp)
-                .rise(7),
+                .padding(top = 28.dp)
+                .rise(6),
         )
     }
 }
@@ -233,26 +232,26 @@ private fun BrandBlock(
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         WaveLogo(incognito = incognito)
-        Spacer(Modifier.height(26.dp))
+        Spacer(Modifier.height(24.dp))
         Text(
             text = "YBOW",
             style = TextWordmark,
             color = palette.text,
         )
-        Spacer(Modifier.height(14.dp))
+        Spacer(Modifier.height(12.dp))
         Text(
             text = if (incognito) {
                 "Sessiz, hızlı, iz bırakmaz."
             } else {
                 "Sessiz, hızlı, senin."
             },
-            style = TextStyle(fontSize = 16.sp),
+            style = TextStyle(fontSize = 15.5.sp),
             color = palette.muted,
         )
     }
 }
 
-/** Rounded gradient tile with three endlessly drifting wave lines, as in the mock. */
+/** Rounded gradient tile with three endlessly drifting wave lines. */
 @Composable
 private fun WaveLogo(incognito: Boolean) {
     val transition = rememberInfiniteTransition(label = "logoWave")
@@ -330,26 +329,32 @@ private fun SearchPill(
 ) {
     val interaction = remember { MutableInteractionSource() }
     val focused by interaction.collectIsFocusedAsState()
-    val scale by animateFloatAsState(
-        targetValue = if (focused) 1.025f else 1f,
-        animationSpec = tween(YbowMotion.DurMillis, easing = YbowMotion.Spring),
-        label = "searchScale",
-    )
     val accent = palette.accent
+    val borderColor by animateColorAsState(
+        targetValue = if (focused) accent else palette.line,
+        animationSpec = tween(YbowMotion.FastMillis),
+        label = "searchBorder",
+    )
 
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .height(62.dp)
-            .graphicsLayerScale(scale)
+            .height(60.dp)
             .clip(CircleShape)
-            .background(palette.card)
+            .background(
+                Brush.verticalGradient(
+                    listOf(
+                        if (focused) palette.cardRaised else palette.card,
+                        palette.card,
+                    ),
+                ),
+            )
             .border(
-                width = 1.dp,
-                color = if (focused) accent else palette.line,
+                width = if (focused) 1.5.dp else 1.dp,
+                color = borderColor,
                 shape = CircleShape,
             )
-            .padding(start = 20.dp, end = 7.dp),
+            .padding(start = 18.dp, end = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(
@@ -363,7 +368,7 @@ private fun SearchPill(
             value = query,
             onValueChange = onQueryChange,
             singleLine = true,
-            textStyle = TextStyle(fontSize = 17.sp, color = palette.text),
+            textStyle = TextStyle(fontSize = 16.5.sp, color = palette.text),
             cursorBrush = SolidColor(accent),
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
             keyboardActions = KeyboardActions(onSearch = { onSubmit() }),
@@ -376,7 +381,7 @@ private fun SearchPill(
                     if (query.isEmpty()) {
                         Text(
                             text = stringResource(R.string.address_bar_hint),
-                            style = TextStyle(fontSize = 17.sp),
+                            style = TextStyle(fontSize = 16.5.sp),
                             color = palette.muted,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
@@ -396,10 +401,17 @@ private fun GoButton(palette: com.ybow.browser.ui.theme.YbowPalette, onClick: ()
     val source = remember { MutableInteractionSource() }
     Box(
         modifier = Modifier
-            .size(48.dp)
-            .pressScale(source, YbowMotion.PressGo)
+            .size(46.dp)
+            .pressScale(source, YbowMotion.PressGo, highlight = true)
             .clip(CircleShape)
-            .background(palette.accent)
+            .background(
+                Brush.linearGradient(
+                    listOf(
+                        palette.accent,
+                        palette.accent.copy(alpha = 0.84f),
+                    ),
+                ),
+            )
             .combinedClickable(
                 interactionSource = source,
                 indication = null,
@@ -411,7 +423,7 @@ private fun GoButton(palette: com.ybow.browser.ui.theme.YbowPalette, onClick: ()
             imageVector = YbowIcons.Arrow,
             contentDescription = stringResource(R.string.action_go),
             tint = palette.bg,
-            modifier = Modifier.size(22.dp),
+            modifier = Modifier.size(21.dp),
         )
     }
 }
@@ -423,17 +435,6 @@ private fun EngineRow(
     onCycle: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var flick by remember { mutableStateOf(false) }
-    LaunchedEffect(engineLabel) {
-        flick = true
-        kotlinx.coroutines.delay(300)
-        flick = false
-    }
-    val alpha by animateFloatAsState(
-        targetValue = if (flick) 1f else 1f,
-        label = "engineFlick",
-    )
-
     Row(
         modifier = modifier.padding(top = 10.dp),
         horizontalArrangement = Arrangement.End,
@@ -446,14 +447,14 @@ private fun EngineRow(
                     indication = null,
                     onClick = onCycle,
                 )
-                .padding(horizontal = 2.dp, vertical = 4.dp),
+                .padding(horizontal = 4.dp, vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(text = "Arama motoru: ", style = TextStyle(fontSize = 13.5.sp), color = palette.muted)
+            Text(text = "Arama motoru: ", style = TextStyle(fontSize = 13.sp), color = palette.muted)
             Text(
                 text = engineLabel,
-                style = TextStyle(fontSize = 13.5.sp, fontWeight = FontWeight.SemiBold),
-                color = palette.text,
-                modifier = Modifier.graphicsLayerAlpha(alpha),
+                style = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.SemiBold),
+                color = palette.accent,
             )
         }
     }
@@ -464,7 +465,7 @@ private fun LinkText(text: String, onClick: () -> Unit) {
     val palette = LocalYbowPalette.current
     Text(
         text = text,
-        style = TextStyle(fontSize = 14.5.sp, fontWeight = FontWeight.SemiBold),
+        style = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.SemiBold),
         color = palette.accent,
         modifier = Modifier
             .clip(RoundedCornerShape(6.dp))
@@ -484,7 +485,7 @@ private fun AddButton(palette: com.ybow.browser.ui.theme.YbowPalette, onClick: (
             .size(30.dp)
             .pressScale(source, YbowMotion.PressAdd, rotate = 90f)
             .clip(CircleShape)
-            .background(palette.card)
+            .background(palette.cardRaised)
             .border(1.dp, palette.line, CircleShape)
             .combinedClickable(
                 interactionSource = source,
@@ -513,12 +514,7 @@ private fun ShortcutTile(
 ) {
     val palette = LocalYbowPalette.current
     val host = UrlTools.hostOf(shortcut.url)
-    var held by remember { mutableStateOf(false) }
-    val scale by animateFloatAsState(
-        targetValue = if (held) YbowMotion.HeldTile else 1f,
-        animationSpec = tween(YbowMotion.DurMillis, easing = YbowMotion.Spring),
-        label = "heldScale",
-    )
+    val tileSource = remember { MutableInteractionSource() }
     val pop by animateFloatAsState(
         targetValue = if (fresh) 1f else 0f,
         animationSpec = tween(YbowMotion.PopMillis, easing = YbowMotion.Spring),
@@ -527,17 +523,13 @@ private fun ShortcutTile(
 
     Column(
         modifier = modifier
-            .graphicsLayerScale(scale, pop)
+            .graphicsLayerAlphaPop(pop)
             .clip(RoundedCornerShape(16.dp))
             .combinedClickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
                 onClick = onOpen,
-                onLongClick = {
-                    held = true
-                    onHold()
-                    held = false
-                },
+                onLongClick = onHold,
             )
             .padding(vertical = 4.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -545,9 +537,10 @@ private fun ShortcutTile(
         Box(
             modifier = Modifier
                 .size(52.dp)
+                .pressScale(tileSource, YbowMotion.PressTile)
                 .clip(CircleShape)
                 .background(siteIconBackground(host))
-                .border(1.dp, Color.White.copy(alpha = 0.08f), CircleShape),
+                .border(1.dp, Color.White.copy(alpha = 0.10f), CircleShape),
             contentAlignment = Alignment.Center,
         ) {
             Text(
@@ -559,7 +552,7 @@ private fun ShortcutTile(
         Spacer(Modifier.height(8.dp))
         Text(
             text = shortcut.title,
-            style = TextStyle(fontSize = 12.5.sp),
+            style = TextStyle(fontSize = 12.sp),
             color = palette.muted,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
@@ -605,8 +598,8 @@ private fun IncognitoCard(
     val pink = palette.pink
     Row(
         modifier = modifier
-            .pressScale(source, YbowMotion.PressCard)
-            .clip(RoundedCornerShape(24.dp))
+            .pressScale(source, YbowMotion.PressCard, highlight = true)
+            .clip(RoundedCornerShape(22.dp))
             .background(
                 Brush.linearGradient(
                     listOf(
@@ -615,7 +608,7 @@ private fun IncognitoCard(
                     ),
                 ),
             )
-            .border(1.dp, palette.line, RoundedCornerShape(24.dp))
+            .border(1.dp, palette.line, RoundedCornerShape(22.dp))
             .combinedClickable(
                 interactionSource = source,
                 indication = null,
@@ -652,7 +645,7 @@ private fun IncognitoCard(
                 } else {
                     "Bu sekmede geçmiş kaydedilmez."
                 },
-                style = TextStyle(fontSize = 13.5.sp),
+                style = TextStyle(fontSize = 13.sp),
                 color = palette.muted,
             )
         }
@@ -669,7 +662,7 @@ private fun YbowSwitch(palette: com.ybow.browser.ui.theme.YbowPalette, checked: 
     )
     val track by animateFloatAsState(
         targetValue = if (checked) 1f else 0f,
-        animationSpec = tween(YbowMotion.DurMillis),
+        animationSpec = tween(YbowMotion.FastMillis),
         label = "switchTrack",
     )
     Box(
@@ -694,15 +687,15 @@ private fun YbowSwitch(palette: com.ybow.browser.ui.theme.YbowPalette, checked: 
 
 // ---------------------------------------------------------------- small helpers
 
-private fun Modifier.graphicsLayerScale(scale: Float, pop: Float = 0f): Modifier =
+private fun Modifier.graphicsLayerAlphaPop(pop: Float): Modifier =
     graphicsLayer {
-        scaleX = scale * (if (pop > 0f) 0.3f + 0.7f * pop else 1f)
-        scaleY = scale * (if (pop > 0f) 0.3f + 0.7f * pop else 1f)
-        alpha = if (pop > 0f) pop else 1f
+        if (pop > 0f) {
+            val s = 0.3f + 0.7f * pop
+            scaleX = s
+            scaleY = s
+            alpha = pop
+        }
     }
-
-private fun Modifier.graphicsLayerAlpha(alpha: Float): Modifier =
-    graphicsLayer { this.alpha = alpha }
 
 private fun Modifier.dashedBorder(color: Color, radius: androidx.compose.ui.unit.Dp): Modifier =
     drawBehind {

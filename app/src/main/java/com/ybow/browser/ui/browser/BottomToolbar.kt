@@ -4,8 +4,8 @@ package com.ybow.browser.ui.browser
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -23,25 +23,27 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.foundation.combinedClickable
 import com.ybow.browser.ui.theme.LocalYbowPalette
 import com.ybow.browser.ui.theme.YbowIcons
 import com.ybow.browser.ui.theme.YbowMotion
-import com.ybow.browser.ui.theme.YbowPalette
 import com.ybow.browser.ui.theme.pressScale
 
-/** Height of the floating pill; content keeps this free at its end. */
+/** Height of the floating pill. */
 val BottomBarHeight = 68.dp
-val BottomBarContentPadding = 128.dp
+
+/** Bottom space reserved for page content so nothing is hidden under the pill. */
+val BottomBarReservedSpace = 78.dp
 
 /**
- * The floating pill from the design: tabs with a bordered counter, back, a raised
- * search button, home and menu. It hovers over the content with no backing strip.
+ * Floating navigation pill: five equal-width columns so every touch target is large
+ * and there are no dead gaps between buttons. Tabs counter with rounded badge, back,
+ * raised gradient search FAB, home and menu.
  */
 @Composable
 fun BottomToolbar(
@@ -60,117 +62,156 @@ fun BottomToolbar(
         modifier = Modifier
             .fillMaxWidth()
             .navigationBarsPadding()
-            .padding(start = 14.dp, end = 14.dp, bottom = 14.dp),
+            .padding(start = 14.dp, end = 14.dp, bottom = 12.dp),
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(BottomBarHeight)
-                .shadow(18.dp, CircleShape)
+                .shadow(
+                    elevation = 18.dp,
+                    shape = CircleShape,
+                    spotColor = palette.accent.copy(alpha = 0.28f),
+                    ambientColor = Color.Black.copy(alpha = 0.45f),
+                )
                 .clip(CircleShape)
-                .background(palette.card.copy(alpha = 0.94f))
-                .border(1.dp, palette.line, CircleShape)
-                .padding(horizontal = 9.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween,
-        ) {
-            val source = remember { MutableInteractionSource() }
-            Box(
-                modifier = Modifier
-                    .size(48.dp)
-                    .pressScale(source, YbowMotion.PressPillButton)
-                    .clip(CircleShape)
-                    .background(
-                        if (tabsOpen) palette.accent.copy(alpha = 0.20f) else androidx.compose.ui.graphics.Color.Transparent,
-                    )
-                    .combinedClickable(
-                        interactionSource = source,
-                        indication = null,
-                        onClick = onTabs,
+                .background(
+                    Brush.verticalGradient(
+                        listOf(
+                            palette.card.copy(alpha = 0.98f),
+                            palette.bg.copy(alpha = 0.98f),
+                        ),
                     ),
-                contentAlignment = Alignment.Center,
+                )
+                .border(
+                    width = 1.dp,
+                    color = if (tabsOpen) palette.accent.copy(alpha = 0.60f) else palette.line,
+                    shape = CircleShape,
+                )
+                .padding(horizontal = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            PillSlot(
+                modifier = Modifier.weight(1f),
+                onClick = onTabs,
+                highlight = tabsOpen,
             ) {
                 Box(
                     modifier = Modifier
-                        .size(24.dp)
+                        .size(26.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(if (tabsOpen) palette.accent else Color.Transparent)
                         .border(
-                            width = 2.dp,
-                            color = if (tabsOpen) palette.accent else palette.text,
-                            shape = RoundedCornerShape(7.dp),
+                            width = 1.8.dp,
+                            color = palette.accent,
+                            shape = RoundedCornerShape(8.dp),
                         ),
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
-                        text = tabCount.toString(),
+                        text = if (tabCount > 99) "99+" else tabCount.toString(),
                         style = TextStyle(
-                            fontSize = 12.sp,
+                            fontSize = 12.5.sp,
                             fontWeight = FontWeight.Bold,
                             letterSpacing = 0.sp,
                         ),
-                        color = if (tabsOpen) palette.accent else palette.text,
+                        color = if (tabsOpen) palette.bg else palette.accent,
                     )
                 }
             }
 
-            PillButton(
-                palette = palette,
-                icon = YbowIcons.Back,
-                enabled = canGoBack,
+            PillSlot(
+                modifier = Modifier.weight(1f),
                 onClick = onBack,
-            )
-
-            val searchSource = remember { MutableInteractionSource() }
-            Box(
-                modifier = Modifier
-                    .size(56.dp)
-                    .pressScale(searchSource, YbowMotion.PressPillButton)
-                    .clip(CircleShape)
-                    .background(palette.accent)
-                    .combinedClickable(
-                        interactionSource = searchSource,
-                        indication = null,
-                        onClick = onSearch,
-                    ),
-                contentAlignment = Alignment.Center,
+                enabled = canGoBack,
             ) {
                 Icon(
-                    imageVector = YbowIcons.Search,
-                    contentDescription = "Ara",
-                    tint = palette.bg,
-                    modifier = Modifier.size(25.dp),
+                    imageVector = YbowIcons.Back,
+                    contentDescription = "Geri",
+                    tint = palette.text.copy(alpha = if (canGoBack) 1f else 0.30f),
+                    modifier = Modifier.size(22.dp),
                 )
             }
 
-            PillButton(
-                palette = palette,
-                icon = YbowIcons.Home,
-                enabled = true,
-                onClick = onHome,
-            )
+            Box(
+                modifier = Modifier.weight(1f),
+                contentAlignment = Alignment.Center,
+            ) {
+                val searchSource = remember { MutableInteractionSource() }
+                Box(
+                    modifier = Modifier
+                        .size(50.dp)
+                        .pressScale(searchSource, YbowMotion.PressGo, highlight = true)
+                        .clip(CircleShape)
+                        .background(
+                            Brush.linearGradient(
+                                listOf(
+                                    palette.accent,
+                                    palette.accent.copy(alpha = 0.82f),
+                                ),
+                            ),
+                        )
+                        .combinedClickable(
+                            interactionSource = searchSource,
+                            indication = null,
+                            onClick = onSearch,
+                        ),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = YbowIcons.Search,
+                        contentDescription = "Ara",
+                        tint = palette.bg,
+                        modifier = Modifier.size(24.dp),
+                    )
+                }
+            }
 
-            PillButton(
-                palette = palette,
-                icon = YbowIcons.Dots,
-                enabled = true,
+            PillSlot(
+                modifier = Modifier.weight(1f),
+                onClick = onHome,
+            ) {
+                Icon(
+                    imageVector = YbowIcons.Home,
+                    contentDescription = "Başlangıç",
+                    tint = palette.text,
+                    modifier = Modifier.size(22.dp),
+                )
+            }
+
+            PillSlot(
+                modifier = Modifier.weight(1f),
                 onClick = onMenu,
-            )
+            ) {
+                Icon(
+                    imageVector = YbowIcons.Dots,
+                    contentDescription = "Menü",
+                    tint = palette.text,
+                    modifier = Modifier.size(20.dp),
+                )
+            }
         }
     }
 }
 
 @Composable
-private fun PillButton(
-    palette: YbowPalette,
-    icon: ImageVector,
-    enabled: Boolean,
+private fun PillSlot(
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    highlight: Boolean = false,
     onClick: () -> Unit,
+    content: @Composable () -> Unit,
 ) {
     val source = remember { MutableInteractionSource() }
+    val palette = LocalYbowPalette.current
     Box(
-        modifier = Modifier
-            .size(48.dp)
-            .pressScale(source, YbowMotion.PressPillButton)
+        modifier = modifier
+            .height(BottomBarHeight)
+            .pressScale(source, YbowMotion.PressPillButton, highlight = true)
             .clip(CircleShape)
+            .background(
+                if (highlight) palette.accent.copy(alpha = 0.16f) else Color.Transparent,
+            )
             .combinedClickable(
                 interactionSource = source,
                 indication = null,
@@ -179,11 +220,6 @@ private fun PillButton(
             ),
         contentAlignment = Alignment.Center,
     ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = palette.text.copy(alpha = if (enabled) 1f else 0.32f),
-            modifier = Modifier.size(22.dp),
-        )
+        content()
     }
 }

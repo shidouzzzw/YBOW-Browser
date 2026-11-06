@@ -16,41 +16,46 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 
 /**
- * Every duration, curve and scale of the interface, matching the design tokens
- * (--dur, --dur-slow, --ease, --spring) of the original mock.
+ * Every duration, curve and scale of the interface, tuned for a snappy, premium feel.
  */
 object YbowMotion {
 
+    // Press feedback: instant press-in, gentle controlled release.
+    const val PressDownMillis = 90
+    const val PressUpMillis = 180
+
     // Durations, in milliseconds.
-    const val DurMillis = 280
-    const val SlowMillis = 460
-    const val RiseMillis = 620
-    const val RiseStepMillis = 70
-    const val PopMillis = 500
-    const val ShakeMillis = 380
-    const val LoadMillis = 1100
+    const val FastMillis = 160
+    const val DurMillis = 220
+    const val SlowMillis = 320
+    const val RiseMillis = 300
+    const val RiseStepMillis = 35
+    const val PopMillis = 400
+    const val ShakeMillis = 360
+    const val LoadMillis = 900
     const val ToastMillis = 2300L
-    const val LongPressMillis = 480L
-    const val CloseTabMillis = 200L
-    const val DeleteShortcutMillis = 230L
-    const val FocusDelayMillis = 320L
+    const val LongPressMillis = 440L
+    const val CloseTabMillis = 180L
+    const val DeleteShortcutMillis = 200L
+    const val FocusDelayMillis = 200L
 
     // Curves.
     val Ease: Easing = CubicBezierEasing(0.22f, 0.9f, 0.3f, 1f)
-    val Spring: Easing = CubicBezierEasing(0.34f, 1.56f, 0.64f, 1f)
+    val EaseOut: Easing = CubicBezierEasing(0f, 0f, 0.2f, 1f)
+    val Spring: Easing = CubicBezierEasing(0.34f, 1.35f, 0.64f, 1f)
 
     // Press scales.
-    const val PressTile = 0.9f
-    const val PressPillButton = 0.86f
-    const val PressGo = 0.88f
-    const val PressAdd = 0.86f
-    const val PressCard = 0.98f
-    const val PressTabCard = 0.97f
-    const val PressNewTab = 0.96f
+    const val PressTile = 0.95f
+    const val PressPillButton = 0.93f
+    const val PressGo = 0.92f
+    const val PressAdd = 0.88f
+    const val PressCard = 0.985f
+    const val PressTabCard = 0.98f
+    const val PressNewTab = 0.97f
     const val PressButton = 0.96f
-    const val PressMenu = 0.93f
-    const val PressReload = 0.9f
-    const val HeldTile = 1.06f
+    const val PressMenu = 0.94f
+    const val PressReload = 0.88f
+    const val HeldTile = 1.05f
 }
 
 /** Scales its child while pressed and springs back on release. */
@@ -59,24 +64,30 @@ fun Modifier.pressScale(
     interactionSource: InteractionSource,
     pressedScale: Float = YbowMotion.PressButton,
     rotate: Float = 0f,
+    highlight: Boolean = false,
 ): Modifier {
     val pressed by interactionSource.collectIsPressedAsState()
     val progress by animateFloatAsState(
         targetValue = if (pressed) 1f else 0f,
-        animationSpec = tween(YbowMotion.DurMillis, easing = YbowMotion.Spring),
+        animationSpec = tween(
+            durationMillis = if (pressed) YbowMotion.PressDownMillis else YbowMotion.PressUpMillis,
+            easing = if (pressed) YbowMotion.EaseOut else YbowMotion.Spring,
+        ),
         label = "pressScale",
     )
     val scale = 1f + (pressedScale - 1f) * progress
+    val alphaPress = if (highlight) 1f - 0.15f * progress else 1f
     return graphicsLayer {
         scaleX = scale
         scaleY = scale
         rotationZ = rotate * progress
+        alpha = alphaPress
     }
 }
 
 /**
- * The staggered "rise" entrance of the design: fade up 14px with a 70ms delay per
- * index. Runs once when the item first appears.
+ * The staggered "rise" entrance: fade up 10px with a 35ms delay per index.
+ * Runs once when the item first appears.
  */
 @Composable
 fun Modifier.rise(index: Int = 0, enabled: Boolean = true): Modifier {
@@ -87,13 +98,13 @@ fun Modifier.rise(index: Int = 0, enabled: Boolean = true): Modifier {
         animationSpec = tween(
             durationMillis = YbowMotion.RiseMillis,
             delayMillis = index * YbowMotion.RiseStepMillis,
-            easing = YbowMotion.Ease,
+            easing = YbowMotion.EaseOut,
         ),
         label = "rise",
     )
     return graphicsLayer {
         alpha = progress
-        translationY = (1f - progress) * 14.dp.toPx()
+        translationY = (1f - progress) * 10.dp.toPx()
     }
 }
 

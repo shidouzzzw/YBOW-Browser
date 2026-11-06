@@ -2,6 +2,9 @@
 
 package com.ybow.browser.ui.browser
 
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
 import android.content.Intent
 import android.webkit.WebChromeClient
 import android.widget.FrameLayout
@@ -14,6 +17,8 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
@@ -46,7 +51,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -81,8 +86,10 @@ fun BrowserScreen(
     onNavigate: (YbowScreen) -> Unit,
 ) {
     val tab = viewModel.activeTab
+    val context = LocalContext.current
     val settings by viewModel.settings.collectAsStateWithLifecycle()
     val shortcuts by viewModel.shortcuts.collectAsStateWithLifecycle(emptyList())
+    val bookmarks by viewModel.bookmarks.collectAsStateWithLifecycle(emptyList())
     val palette = if (tab?.isIncognito == true) YbowPalette.Incognito else YbowPalette.Night
 
     YbowTheme(palette = palette) {
@@ -97,6 +104,7 @@ fun BrowserScreen(
         val scope = rememberCoroutineScope()
 
         val hasPage = tab?.hasPage == true
+        val isBookmarked = bookmarks.any { it.url == tab?.url }
 
         val fileChooserLauncher = rememberLauncherForActivityResult(
             contract = ActivityResultContracts.StartActivityForResult(),
@@ -135,7 +143,6 @@ fun BrowserScreen(
             if (sheet != BrowserSheet.None) visibleSheet = sheet
         }
 
-        // The mock greets first time users with a hint once shortcuts exist.
         var hintShown by remember { mutableStateOf(false) }
         val shortcutCount = shortcuts.size
         LaunchedEffect(shortcutCount) {
@@ -150,6 +157,7 @@ fun BrowserScreen(
             when {
                 sheet != BrowserSheet.None -> sheet = BrowserSheet.None
                 tabsOpen -> tabsOpen = false
+                tab?.canGoBack == true -> viewModel.goBack()
                 else -> viewModel.goHome(loadHomepage = false)
             }
         }
@@ -172,31 +180,30 @@ fun BrowserScreen(
                         secure = tab?.isSecure == true,
                         progress = (tab?.progress ?: 0) / 100f,
                         loading = tab?.isLoading == true,
-                        onChip = {
-                            viewModel.goHome(loadHomepage = false)
-                            searchFocusSignal++
-                        },
+                        onChip = { sheet = BrowserSheet.Search(tab?.url.orEmpty()) },
                         onReload = { viewModel.reload() },
                     )
                 }
                 WebViewHost(
                     viewModel = viewModel,
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(bottom = BottomBarReservedSpace),
                 )
             }
 
             // ------------------------------ home layer
             AnimatedVisibility(
                 visible = !tabsOpen && !hasPage,
-                enter = fadeIn(tween(YbowMotion.DurMillis, easing = YbowMotion.Ease)) +
+                enter = fadeIn(tween(YbowMotion.DurMillis)) +
                     scaleIn(
-                        animationSpec = tween(YbowMotion.SlowMillis, easing = YbowMotion.Ease),
-                        initialScale = 0.97f,
+                        animationSpec = tween(YbowMotion.DurMillis, easing = YbowMotion.Ease),
+                        initialScale = 0.985f,
                     ),
-                exit = fadeOut(tween(YbowMotion.DurMillis, easing = YbowMotion.Ease)) +
+                exit = fadeOut(tween(YbowMotion.FastMillis)) +
                     scaleOut(
-                        animationSpec = tween(YbowMotion.SlowMillis, easing = YbowMotion.Ease),
-                        targetScale = 0.97f,
+                        animationSpec = tween(YbowMotion.FastMillis, easing = YbowMotion.Ease),
+                        targetScale = 0.985f,
                     ),
             ) {
                 Box(
@@ -237,15 +244,15 @@ fun BrowserScreen(
             // ------------------------------ tabs layer
             AnimatedVisibility(
                 visible = tabsOpen,
-                enter = fadeIn(tween(YbowMotion.DurMillis, easing = YbowMotion.Ease)) +
+                enter = fadeIn(tween(YbowMotion.DurMillis)) +
                     scaleIn(
-                        animationSpec = tween(YbowMotion.SlowMillis, easing = YbowMotion.Ease),
-                        initialScale = 1.05f,
+                        animationSpec = tween(YbowMotion.DurMillis, easing = YbowMotion.Ease),
+                        initialScale = 1.02f,
                     ),
-                exit = fadeOut(tween(YbowMotion.DurMillis, easing = YbowMotion.Ease)) +
+                exit = fadeOut(tween(YbowMotion.FastMillis)) +
                     scaleOut(
-                        animationSpec = tween(YbowMotion.SlowMillis, easing = YbowMotion.Ease),
-                        targetScale = 1.05f,
+                        animationSpec = tween(YbowMotion.FastMillis, easing = YbowMotion.Ease),
+                        targetScale = 1.02f,
                     ),
             ) {
                 Box(
@@ -287,7 +294,7 @@ fun BrowserScreen(
             ) {
                 BottomToolbar(
                     tabCount = viewModel.tabs.size,
-                    canGoBack = hasPage,
+                    canGoBack = sheet != BrowserSheet.None || tabsOpen || (tab?.canGoBack == true) || hasPage,
                     tabsOpen = tabsOpen,
                     onTabs = {
                         sheet = BrowserSheet.None
@@ -297,6 +304,7 @@ fun BrowserScreen(
                         when {
                             sheet != BrowserSheet.None -> sheet = BrowserSheet.None
                             tabsOpen -> tabsOpen = false
+                            tab?.canGoBack == true -> viewModel.goBack()
                             hasPage -> viewModel.goHome(loadHomepage = false)
                             else -> toast = "Geri gidilecek sayfa yok"
                         }
@@ -304,8 +312,11 @@ fun BrowserScreen(
                     onSearch = {
                         sheet = BrowserSheet.None
                         tabsOpen = false
-                        if (hasPage) viewModel.goHome(loadHomepage = false)
-                        searchFocusSignal++
+                        if (hasPage) {
+                            sheet = BrowserSheet.Search(tab?.url.orEmpty())
+                        } else {
+                            searchFocusSignal++
+                        }
                     },
                     onHome = {
                         sheet = BrowserSheet.None
@@ -321,19 +332,28 @@ fun BrowserScreen(
 
             AnimatedVisibility(
                 visible = sheet != BrowserSheet.None,
-                enter = androidx.compose.animation.slideInVertically(
-                    animationSpec = tween(YbowMotion.SlowMillis, easing = YbowMotion.Ease),
+                enter = slideInVertically(
+                    animationSpec = tween(YbowMotion.SlowMillis, easing = YbowMotion.EaseOut),
                     initialOffsetY = { it },
-                ),
-                exit = androidx.compose.animation.slideOutVertically(
-                    animationSpec = tween(YbowMotion.SlowMillis, easing = YbowMotion.Ease),
+                ) + fadeIn(tween(180)),
+                exit = slideOutVertically(
+                    animationSpec = tween(200, easing = androidx.compose.animation.core.FastOutLinearInEasing),
                     targetOffsetY = { it },
-                ),
+                ) + fadeOut(tween(160)),
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .fillMaxWidth(),
             ) {
                 when (val current = visibleSheet) {
+                    is BrowserSheet.Search -> OmniboxSheet(
+                        initialUrl = current.initialUrl,
+                        onDismiss = { sheet = BrowserSheet.None },
+                        onSubmit = { input ->
+                            sheet = BrowserSheet.None
+                            viewModel.navigate(input)
+                        },
+                    )
+
                     is BrowserSheet.Edit -> ShortcutSheet(
                         shortcut = current.shortcut,
                         onDismiss = { sheet = BrowserSheet.None },
@@ -372,6 +392,8 @@ fun BrowserScreen(
                     )
 
                     is BrowserSheet.Menu -> MenuSheet(
+                        hasPage = hasPage,
+                        isBookmarked = isBookmarked,
                         onDismiss = { sheet = BrowserSheet.None },
                         onNewTab = {
                             sheet = BrowserSheet.None
@@ -398,6 +420,30 @@ fun BrowserScreen(
                         onSettings = {
                             sheet = BrowserSheet.None
                             onNavigate(YbowScreen.Settings)
+                        },
+                        onToggleBookmark = {
+                            sheet = BrowserSheet.None
+                            tab?.let { viewModel.toggleBookmark(it) }
+                        },
+                        onShare = {
+                            sheet = BrowserSheet.None
+                            val u = tab?.url.orEmpty()
+                            if (u.isNotBlank()) {
+                                val send = Intent(Intent.ACTION_SEND).apply {
+                                    type = "text/plain"
+                                    putExtra(Intent.EXTRA_TEXT, u)
+                                }
+                                runCatching { context.startActivity(Intent.createChooser(send, "Paylaş")) }
+                            }
+                        },
+                        onCopy = {
+                            sheet = BrowserSheet.None
+                            val u = tab?.url.orEmpty()
+                            if (u.isNotBlank()) {
+                                val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
+                                clipboard?.setPrimaryClip(ClipData.newPlainText("URL", u))
+                                toast = "Bağlantı kopyalandı"
+                            }
                         },
                     )
 
@@ -437,13 +483,13 @@ private fun PageBar(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(start = 16.dp, end = 16.dp, top = 14.dp, bottom = 12.dp),
+                .padding(start = 14.dp, end = 14.dp, top = 10.dp, bottom = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Row(
                 modifier = Modifier
                     .weight(1f)
-                    .height(46.dp)
+                    .height(44.dp)
                     .clip(CircleShape)
                     .background(palette.card)
                     .border(1.dp, palette.line, CircleShape)
@@ -452,29 +498,39 @@ private fun PageBar(
                         indication = null,
                         onClick = onChip,
                     )
-                    .padding(horizontal = 16.dp),
+                    .padding(horizontal = 14.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Icon(
-                    imageVector = YbowIcons.Lock,
-                    contentDescription = null,
-                    tint = if (secure) palette.accent else palette.pink,
-                    modifier = Modifier.size(16.dp),
-                )
+                Box(
+                    modifier = Modifier
+                        .size(22.dp)
+                        .clip(CircleShape)
+                        .background(
+                            if (secure) palette.accent.copy(alpha = 0.14f) else palette.pink.copy(alpha = 0.14f),
+                        ),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = YbowIcons.Lock,
+                        contentDescription = null,
+                        tint = if (secure) palette.accent else palette.pink,
+                        modifier = Modifier.size(13.dp),
+                    )
+                }
                 Spacer(Modifier.width(10.dp))
                 Text(
                     text = label,
-                    style = TextStyle(fontSize = 15.sp),
+                    style = TextStyle(fontSize = 14.5.sp, fontWeight = FontWeight.Normal),
                     color = palette.text,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
             }
-            Spacer(Modifier.width(10.dp))
+            Spacer(Modifier.width(8.dp))
             Box(
                 modifier = Modifier
-                    .size(46.dp)
-                    .pressScale(reloadSource, YbowMotion.PressReload, rotate = 180f)
+                    .size(44.dp)
+                    .pressScale(reloadSource, YbowMotion.PressReload, rotate = 180f, highlight = true)
                     .clip(CircleShape)
                     .background(palette.card)
                     .border(1.dp, palette.line, CircleShape)
@@ -489,7 +545,7 @@ private fun PageBar(
                     imageVector = YbowIcons.Reload,
                     contentDescription = "Yenile",
                     tint = palette.text,
-                    modifier = Modifier.size(20.dp),
+                    modifier = Modifier.size(19.dp),
                 )
             }
         }

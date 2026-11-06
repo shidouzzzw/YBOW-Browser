@@ -128,4 +128,15 @@ object YbowIcons {
         stroke("M13 7a2 2 0 1 0 4 0a2 2 0 1 0 -4 0")
         stroke("M7 17a2 2 0 1 0 4 0a2 2 0 1 0 -4 0")
     }
+
+    val Share: ImageVector = icon("share") {
+        stroke("M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7")
+        stroke("M12 3v12")
+        stroke("M8 7l4-4 4 4")
+    }
+
+    val Copy: ImageVector = icon("copy") {
+        stroke("M8 8h11a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z")
+        stroke("M5 16H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h11a1 1 0 0 1 1 1v1")
+    }
 }
