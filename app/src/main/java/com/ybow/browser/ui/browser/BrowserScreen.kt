@@ -6,6 +6,7 @@ import android.widget.FrameLayout
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
@@ -37,6 +38,7 @@ import com.ybow.browser.browser.BrowserViewModel
 import com.ybow.browser.ui.YbowScreen
 import com.ybow.browser.ui.home.HomeScreen
 import com.ybow.browser.ui.search.SearchScreen
+import com.ybow.browser.ui.theme.YbowMotion
 
 @Composable
 fun BrowserScreen(
@@ -136,8 +138,18 @@ fun BrowserScreen(
 
     AnimatedVisibility(
         visible = searchOpen,
-        enter = fadeIn() + slideInVertically(initialOffsetY = { -it / 6 }),
-        exit = fadeOut() + slideOutVertically(targetOffsetY = { -it / 6 }),
+        enter = fadeIn(
+            animationSpec = tween(YbowMotion.SearchOverlayMillis, easing = YbowMotion.Enter),
+        ) + slideInVertically(
+            animationSpec = tween(YbowMotion.SearchOverlayMillis, easing = YbowMotion.Enter),
+            initialOffsetY = { -it / YbowMotion.OverlaySlideDivisor },
+        ),
+        exit = fadeOut(
+            animationSpec = tween(YbowMotion.SearchOverlayMillis, easing = YbowMotion.Exit),
+        ) + slideOutVertically(
+            animationSpec = tween(YbowMotion.SearchOverlayMillis, easing = YbowMotion.Exit),
+            targetOffsetY = { -it / YbowMotion.OverlaySlideDivisor },
+        ),
     ) {
         SearchScreen(
             history = history,

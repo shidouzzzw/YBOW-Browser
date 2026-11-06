@@ -1,6 +1,7 @@
 package com.ybow.browser.ui
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
@@ -31,6 +32,7 @@ import com.ybow.browser.ui.library.BookmarksScreen
 import com.ybow.browser.ui.library.HistoryScreen
 import com.ybow.browser.ui.settings.SettingsScreen
 import com.ybow.browser.ui.tabs.TabsScreen
+import com.ybow.browser.ui.theme.YbowMotion
 
 enum class YbowScreen {
     Browser, Tabs, Bookmarks, History, Downloads, Settings,
@@ -67,8 +69,18 @@ fun YbowApp(viewModel: BrowserViewModel) {
 
         AnimatedVisibility(
             visible = screen != YbowScreen.Browser,
-            enter = fadeIn() + slideInVertically(initialOffsetY = { it / 24 }),
-            exit = fadeOut() + slideOutVertically(targetOffsetY = { it / 24 }),
+            enter = fadeIn(
+                animationSpec = tween(YbowMotion.PageTransitionMillis, easing = YbowMotion.Enter),
+            ) + slideInVertically(
+                animationSpec = tween(YbowMotion.PageTransitionMillis, easing = YbowMotion.Enter),
+                initialOffsetY = { it / YbowMotion.PageSlideDivisor },
+            ),
+            exit = fadeOut(
+                animationSpec = tween(YbowMotion.PageTransitionMillis, easing = YbowMotion.Exit),
+            ) + slideOutVertically(
+                animationSpec = tween(YbowMotion.PageTransitionMillis, easing = YbowMotion.Exit),
+                targetOffsetY = { it / YbowMotion.PageSlideDivisor },
+            ),
         ) {
             Surface(
                 modifier = Modifier.fillMaxSize(),
