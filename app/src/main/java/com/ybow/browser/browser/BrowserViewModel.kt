@@ -219,10 +219,10 @@ class BrowserViewModel(application: Application) : AndroidViewModel(application)
         activeTab?.isLoading = false
     }
 
-    fun goHome() {
+    fun goHome(loadHomepage: Boolean = true) {
         val tab = activeTab ?: return
         val homepage = currentSettings.homepage.trim()
-        if (homepage.isNotBlank()) {
+        if (loadHomepage && homepage.isNotBlank()) {
             loadInto(tab, homepage)
             return
         }
@@ -407,6 +407,8 @@ class BrowserViewModel(application: Application) : AndroidViewModel(application)
             ViewGroup.LayoutParams.MATCH_PARENT,
             ViewGroup.LayoutParams.MATCH_PARENT,
         )
+        // Transparent so the home surface shows through before the first paint.
+        webView.setBackgroundColor(android.graphics.Color.TRANSPARENT)
         configure(webView, tab)
         webView.webViewClient = YbowWebViewClient(this, tab)
         webView.webChromeClient = YbowWebChromeClient(this, tab)
