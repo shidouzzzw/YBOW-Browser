@@ -1,201 +1,188 @@
+@file:OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
+
 package com.ybow.browser.ui.browser
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.ArrowBack
-import androidx.compose.material.icons.rounded.Home
-import androidx.compose.material.icons.rounded.MoreHoriz
-import androidx.compose.material.icons.rounded.Search
-import androidx.compose.material.icons.rounded.Tab
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.ybow.browser.R
+import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.combinedClickable
+import com.ybow.browser.ui.theme.LocalYbowPalette
+import com.ybow.browser.ui.theme.YbowIcons
 import com.ybow.browser.ui.theme.YbowMotion
+import com.ybow.browser.ui.theme.YbowPalette
 import com.ybow.browser.ui.theme.pressScale
 
-/** Height of the floating pill itself. */
-val BottomBarHeight = 62.dp
-
-/** Space the scrollable content keeps free at its end so the pill never hides it. */
-val BottomBarContentPadding = 96.dp
+/** Height of the floating pill; content keeps this free at its end. */
+val BottomBarHeight = 68.dp
+val BottomBarContentPadding = 128.dp
 
 /**
- * Floating navigation pill: 16dp side margins, 12dp above the bottom inset, fully
- * rounded and softly shadowed. It has no strip or backing plate of its own, so page
- * content stays visible right up to its edge and keeps scrolling underneath.
+ * The floating pill from the design: tabs with a bordered counter, back, a raised
+ * search button, home and menu. It hovers over the content with no backing strip.
  */
 @Composable
 fun BottomToolbar(
-    canGoBack: Boolean,
     tabCount: Int,
+    canGoBack: Boolean,
+    tabsOpen: Boolean,
     onTabs: () -> Unit,
     onBack: () -> Unit,
     onSearch: () -> Unit,
     onHome: () -> Unit,
     onMenu: () -> Unit,
 ) {
-    val colors = MaterialTheme.colorScheme
+    val palette = LocalYbowPalette.current
 
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .navigationBarsPadding()
-            .padding(start = 16.dp, end = 16.dp, bottom = 12.dp),
+            .padding(start = 14.dp, end = 14.dp, bottom = 14.dp),
     ) {
-        Surface(
-            shape = CircleShape,
-            color = colors.surface,
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(BottomBarHeight)
-                .shadow(8.dp, CircleShape),
+                .shadow(18.dp, CircleShape)
+                .clip(CircleShape)
+                .background(palette.card.copy(alpha = 0.94f))
+                .border(1.dp, palette.line, CircleShape)
+                .padding(horizontal = 9.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
         ) {
-            Row(
-                modifier = Modifier.padding(horizontal = 6.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                TabsAction(
-                    tabCount = tabCount,
-                    onClick = onTabs,
-                )
-                BarAction(
-                    icon = Icons.Rounded.ArrowBack,
-                    label = stringResource(R.string.action_back),
-                    enabled = canGoBack,
-                    onClick = onBack,
-                )
-                SearchAction(onClick = onSearch)
-                BarAction(
-                    icon = Icons.Rounded.Home,
-                    label = stringResource(R.string.action_home),
-                    enabled = true,
-                    onClick = onHome,
-                )
-                BarAction(
-                    icon = Icons.Rounded.MoreHoriz,
-                    label = stringResource(R.string.action_menu),
-                    enabled = true,
-                    onClick = onMenu,
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun RowScope.TabsAction(
-    tabCount: Int,
-    onClick: () -> Unit,
-) {
-    val colors = MaterialTheme.colorScheme
-    val source = remember { MutableInteractionSource() }
-    IconButton(
-        onClick = onClick,
-        interactionSource = source,
-        modifier = Modifier
-            .weight(1f)
-            .pressScale(source, YbowMotion.BarPressScale),
-    ) {
-        Box(contentAlignment = Alignment.Center) {
-            Icon(
-                imageVector = Icons.Rounded.Tab,
-                contentDescription = stringResource(R.string.action_tabs),
-                tint = colors.onSurface,
-                modifier = Modifier.size(23.dp),
-            )
-            Surface(
-                shape = CircleShape,
-                color = colors.primary,
+            val source = remember { MutableInteractionSource() }
+            Box(
                 modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(top = 4.dp, end = 2.dp),
+                    .size(48.dp)
+                    .pressScale(source, YbowMotion.PressPillButton)
+                    .clip(CircleShape)
+                    .background(
+                        if (tabsOpen) palette.accent.copy(alpha = 0.20f) else androidx.compose.ui.graphics.Color.Transparent,
+                    )
+                    .combinedClickable(
+                        interactionSource = source,
+                        indication = null,
+                        onClick = onTabs,
+                    ),
+                contentAlignment = Alignment.Center,
             ) {
-                Text(
-                    text = tabCount.toString(),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = colors.onPrimary,
-                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp),
-                )
+                Box(
+                    modifier = Modifier
+                        .size(24.dp)
+                        .border(
+                            width = 2.dp,
+                            color = if (tabsOpen) palette.accent else palette.text,
+                            shape = RoundedCornerShape(7.dp),
+                        ),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = tabCount.toString(),
+                        style = TextStyle(
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 0.sp,
+                        ),
+                        color = if (tabsOpen) palette.accent else palette.text,
+                    )
+                }
             }
-        }
-    }
-}
 
-@Composable
-private fun RowScope.SearchAction(onClick: () -> Unit) {
-    val colors = MaterialTheme.colorScheme
-    val source = remember { MutableInteractionSource() }
-    Box(
-        modifier = Modifier.weight(1f),
-        contentAlignment = Alignment.Center,
-    ) {
-        Surface(
-            onClick = onClick,
-            interactionSource = source,
-            shape = CircleShape,
-            color = colors.primary,
-            modifier = Modifier
-                .size(46.dp)
-                .pressScale(source, YbowMotion.BarPressScale),
-        ) {
-            Box(contentAlignment = Alignment.Center) {
+            PillButton(
+                palette = palette,
+                icon = YbowIcons.Back,
+                enabled = canGoBack,
+                onClick = onBack,
+            )
+
+            val searchSource = remember { MutableInteractionSource() }
+            Box(
+                modifier = Modifier
+                    .size(56.dp)
+                    .pressScale(searchSource, YbowMotion.PressPillButton)
+                    .clip(CircleShape)
+                    .background(palette.accent)
+                    .combinedClickable(
+                        interactionSource = searchSource,
+                        indication = null,
+                        onClick = onSearch,
+                    ),
+                contentAlignment = Alignment.Center,
+            ) {
                 Icon(
-                    imageVector = Icons.Rounded.Search,
-                    contentDescription = stringResource(R.string.address_bar_hint),
-                    tint = colors.onPrimary,
-                    modifier = Modifier.size(22.dp),
+                    imageVector = YbowIcons.Search,
+                    contentDescription = "Ara",
+                    tint = palette.bg,
+                    modifier = Modifier.size(25.dp),
                 )
             }
+
+            PillButton(
+                palette = palette,
+                icon = YbowIcons.Home,
+                enabled = true,
+                onClick = onHome,
+            )
+
+            PillButton(
+                palette = palette,
+                icon = YbowIcons.Dots,
+                enabled = true,
+                onClick = onMenu,
+            )
         }
     }
 }
 
 @Composable
-private fun RowScope.BarAction(
+private fun PillButton(
+    palette: YbowPalette,
     icon: ImageVector,
-    label: String,
     enabled: Boolean,
     onClick: () -> Unit,
 ) {
-    val colors = MaterialTheme.colorScheme
     val source = remember { MutableInteractionSource() }
-    IconButton(
-        onClick = onClick,
-        enabled = enabled,
-        interactionSource = source,
+    Box(
         modifier = Modifier
-            .weight(1f)
-            .pressScale(source, YbowMotion.BarPressScale),
+            .size(48.dp)
+            .pressScale(source, YbowMotion.PressPillButton)
+            .clip(CircleShape)
+            .combinedClickable(
+                interactionSource = source,
+                indication = null,
+                enabled = enabled,
+                onClick = onClick,
+            ),
+        contentAlignment = Alignment.Center,
     ) {
         Icon(
             imageVector = icon,
-            contentDescription = label,
-            tint = if (enabled) {
-                colors.onSurface
-            } else {
-                colors.onSurface.copy(alpha = 0.3f)
-            },
+            contentDescription = null,
+            tint = palette.text.copy(alpha = if (enabled) 1f else 0.32f),
             modifier = Modifier.size(22.dp),
         )
     }
