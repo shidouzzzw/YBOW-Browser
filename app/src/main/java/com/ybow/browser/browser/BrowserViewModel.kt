@@ -32,6 +32,7 @@ import com.ybow.browser.data.ThemeMode
 import com.ybow.browser.data.local.Bookmark
 import com.ybow.browser.data.local.DownloadRecord
 import com.ybow.browser.data.local.HistoryEntry
+import com.ybow.browser.data.local.Shortcut
 import com.ybow.browser.util.UrlTools
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
@@ -63,6 +64,7 @@ class BrowserViewModel(application: Application) : AndroidViewModel(application)
         get() = tabs.firstOrNull { it.id == activeTabId }
 
     val bookmarks: Flow<List<Bookmark>> = browserRepository.bookmarks
+    val shortcuts: Flow<List<Shortcut>> = browserRepository.shortcuts
     val history: Flow<List<HistoryEntry>> = browserRepository.history
     val recentHistory: Flow<List<HistoryEntry>> = browserRepository.recentHistory
     val downloads: Flow<List<DownloadRecord>> = downloadRepository.records
@@ -259,6 +261,57 @@ class BrowserViewModel(application: Application) : AndroidViewModel(application)
 
     fun deleteHistoryEntry(entry: HistoryEntry) {
         viewModelScope.launch { browserRepository.deleteHistoryEntry(entry.id) }
+    }
+
+    // ------------------------------------------------------------- shortcuts
+
+    fun addShortcut(input: String, name: String) {
+        val url = normalizeShortcutUrl(input)
+        if (url == null) {
+            showMessage(app.getString(R.string.shortcut_invalid))
+            return
+        }
+        viewModelScope.launch {
+            val added = browserRepository.addShortcut(url, name)
+            showMessage(
+                app.getString(
+                    if (added) R.string.shortcut_saved else R.string.shortcut_duplicate,
+                ),
+            )
+        }
+    }
+
+    fun updateShortcut(shortcut: Shortcut, input: String, name: String) {
+        val url = normalizeShortcutUrl(input)
+        if (url == null) {
+            showMessage(app.getString(R.string.shortcut_invalid))
+            return
+        }
+        viewModelScope.launch {
+            browserRepository.updateShortcut(
+                shortcut.copy(
+                    url = url,
+                    title = name.trim().ifBlank { UrlTools.displayUrl(url) },
+                ),
+            )
+            showMessage(app.getString(R.string.shortcut_saved))
+        }
+    }
+
+    fun deleteShortcut(shortcut: Shortcut) {
+        viewModelScope.launch {
+            browserRepository.deleteShortcut(shortcut)
+            showMessage(app.getString(R.string.shortcut_deleted))
+        }
+    }
+
+    /** Accepts a bare host or a full http(s) address and returns null for anything else. */
+    private fun normalizeShortcutUrl(input: String): String? {
+        val value = input.trim()
+        if (value.isEmpty()) return null
+        if (UrlTools.isHttpUrl(value)) return value
+        if (!value.contains(' ') && UrlTools.looksLikeHost(value)) return "https://$value"
+        return null
     }
 
     // ------------------------------------------------------------- downloads
