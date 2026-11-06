@@ -1,0 +1,42 @@
+# Gradle
+.gradle/
+**/build/
+!src/**/build/
+gradle-app.setting
+.gradletasknamecache
+
+# Local configuration
+local.properties
+local.defaults.properties
+*.iml
+.idea/
+.navigation/
+.DS_Store
+captures/
+.externalNativeBuild/
+.cxx/
+*.hprof
+*.jks
+*.keystore
+keystore.properties
+signing.properties
+
+# Kotlin
+.kotlin/
+
+# Android build outputs
+*.apk
+*.aab
+*.ap_
+*.dex
+*.class
+output.json
+release/
+
+# Logs and temp files
+*.log
+*.tmp
+*.swp
+
+# OS
+Thumbs.db

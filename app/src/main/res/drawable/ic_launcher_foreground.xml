@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- YBOW mark: an angular "Y" bowl inside a rounded diamond. -->
+    <path
+        android:fillColor="#4FE3C8"
+        android:pathData="M54,26 L66,44 L54,62 L42,44 Z" />
+    <path
+        android:fillColor="#0A0F16"
+        android:pathData="M49.5,34 L58.5,34 L58.5,50.5 L49.5,50.5 Z" />
+    <path
+        android:strokeColor="#F2F5F8"
+        android:strokeWidth="3.2"
+        android:strokeLineCap="round"
+        android:pathData="M38,66 C46,74 62,74 70,66" />
+    <path
+        android:fillColor="#4FE3C8"
+        android:pathData="M36.5,78 m-3,0 a3,3 0 1,0 6,0 a3,3 0 1,0 -6,0" />
+    <path
+        android:fillColor="#8FA3B8"
+        android:pathData="M47.5,78 m-2.2,0 a2.2,2.2 0 1,0 4.4,0 a2.2,2.2 0 1,0 -4.4,0" />
+    <path
+        android:fillColor="#8FA3B8"
+        android:pathData="M57.5,78 m-2.2,0 a2.2,2.2 0 1,0 4.4,0 a2.2,2.2 0 1,0 -4.4,0" />
+</vector>

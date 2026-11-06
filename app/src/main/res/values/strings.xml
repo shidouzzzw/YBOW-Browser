@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">YBOW</string>
+    <string name="app_tagline">Sessiz, hızlı, senin.</string>
+
+    <!-- Address bar and navigation -->
+    <string name="address_bar_hint">Ara veya adres yaz</string>
+    <string name="action_go">Git</string>
+    <string name="action_reload">Yenile</string>
+    <string name="action_stop">Durdur</string>
+    <string name="action_back">Geri</string>
+    <string name="action_forward">İleri</string>
+    <string name="action_home">Başlangıç</string>
+    <string name="action_tabs">Sekmeler</string>
+    <string name="action_menu">Menü</string>
+    <string name="action_close">Kapat</string>
+    <string name="action_clear">Temizle</string>
+    <string name="action_delete">Sil</string>
+    <string name="action_open">Aç</string>
+    <string name="action_retry">Yeniden dene</string>
+
+    <!-- Menu -->
+    <string name="menu_new_tab">Yeni sekme</string>
+    <string name="menu_new_incognito_tab">Gizli sekme</string>
+    <string name="menu_bookmarks">Yer imleri</string>
+    <string name="menu_history">Geçmiş</string>
+    <string name="menu_downloads">İndirmeler</string>
+    <string name="menu_add_bookmark">Yer imlerine ekle</string>
+    <string name="menu_remove_bookmark">Yer iminden çıkar</string>
+    <string name="menu_share">Bağlantıyı paylaş</string>
+    <string name="menu_copy">Bağlantıyı kopyala</string>
+    <string name="menu_settings">Ayarlar</string>
+
+    <!-- Home -->
+    <string name="home_quick_access">Hızlı erişim</string>
+    <string name="home_no_bookmarks">Yer imi eklediğinde burada görünecek.</string>
+    <string name="home_search_engine">Arama motoru: %1$s</string>
+    <string name="home_incognito">Gizli mod</string>
+    <string name="home_incognito_hint">Bu sekmede geçmiş kaydedilmez.</string>
+
+    <!-- Tabs -->
+    <string name="tabs_title">Sekmeler</string>
+    <string name="tabs_count">%1$d sekme</string>
+    <string name="tabs_incognito_badge">Gizli</string>
+    <string name="tabs_empty">Açık sekme yok.</string>
+
+    <!-- Bookmarks -->
+    <string name="bookmarks_title">Yer imleri</string>
+    <string name="bookmarks_empty">Henüz yer imi yok.</string>
+    <string name="bookmarks_empty_hint">Bir sayfadayken menüden yer imine ekleyebilirsin.</string>
+
+    <!-- History -->
+    <string name="history_title">Geçmiş</string>
+    <string name="history_empty">Geçmiş boş.</string>
+    <string name="history_clear_confirm_title">Geçmiş silinsin mi?</string>
+    <string name="history_clear_confirm_body">Tüm tarama geçmişi bu cihazdan kalıcı olarak silinir.</string>
+    <string name="history_today">Bugün</string>
+    <string name="history_yesterday">Dün</string>
+    <string name="history_earlier">Daha önce</string>
+
+    <!-- Downloads -->
+    <string name="downloads_title">İndirmeler</string>
+    <string name="downloads_empty">Henüz indirme yok.</string>
+    <string name="downloads_started">İndirme başladı: %1$s</string>
+    <string name="downloads_failed">İndirme başlatılamadı.</string>
+    <string name="downloads_state_running">İndiriliyor</string>
+    <string name="downloads_state_pending">Sırada</string>
+    <string name="downloads_state_paused">Duraklatıldı</string>
+    <string name="downloads_state_successful">Tamamlandı</string>
+    <string name="downloads_state_failed">Başarısız</string>
+    <string name="downloads_unknown">Bilinmeyen</string>
+    <string name="downloads_open_failed">Bu dosya için uygun bir uygulama bulunamadı.</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Ayarlar</string>
+    <string name="settings_section_search">Arama</string>
+    <string name="settings_search_engine">Arama motoru</string>
+    <string name="settings_search_engine_desc">Adres çubuğuna yazdığın kelimeler bu motorla aranır.</string>
+    <string name="settings_section_appearance">Görünüm</string>
+    <string name="settings_theme">Tema</string>
+    <string name="settings_theme_system">Sistem</string>
+    <string name="settings_theme_light">Açık</string>
+    <string name="settings_theme_dark">Koyu</string>
+    <string name="settings_homepage">Açılış adresi</string>
+    <string name="settings_homepage_desc">Boş bırakılırsa YBOW kendi başlangıç ekranını açar.</string>
+    <string name="settings_homepage_hint">https://ornek.com</string>
+    <string name="settings_section_privacy">Gizlilik ve güvenlik</string>
+    <string name="settings_javascript">JavaScript</string>
+    <string name="settings_javascript_desc">Kapatırsan birçok site düzgün çalışmaz.</string>
+    <string name="settings_third_party_cookies">Üçüncü taraf çerezleri</string>
+    <string name="settings_third_party_cookies_desc">Kapatmak siteler arası takibi zorlaştırır.</string>
+    <string name="settings_save_history">Geçmişi kaydet</string>
+    <string name="settings_save_history_desc">Kapalıyken ziyaretler cihazda tutulmaz.</string>
+    <string name="settings_safe_browsing">Safe Browsing</string>
+    <string name="settings_safe_browsing_desc">Zararlı siteler WebView tarafından engellenir. Her zaman açıktır.</string>
+    <string name="settings_section_data">Veriler</string>
+    <string name="settings_clear_cache">Önbelleği temizle</string>
+    <string name="settings_clear_cookies">Çerezleri temizle</string>
+    <string name="settings_clear_history">Geçmişi temizle</string>
+    <string name="settings_cache_cleared">Önbellek temizlendi</string>
+    <string name="settings_cookies_cleared">Çerezler temizlendi</string>
+    <string name="settings_history_cleared">Geçmiş temizlendi</string>
+    <string name="settings_about">Hakkında</string>
+    <string name="settings_version">Sürüm %1$s</string>
+    <string name="settings_about_desc">YBOW reklam, takip SDK\'sı ve analitik içermez. Hiçbir veri cihazdan çıkmaz.</string>
+
+    <!-- Security warnings -->
+    <string name="ssl_error">Bu sitenin güvenlik sertifikası doğrulanamadı, bağlantı durduruldu.</string>
+    <string name="insecure_warning">Bu bağlantı şifreli değil (HTTP).</string>
+    <string name="external_open_failed">Bağlantı açılamadı.</string>
+    <string name="url_copied">Bağlantı kopyalandı</string>
+    <string name="bookmark_added">Yer imlerine eklendi</string>
+    <string name="bookmark_removed">Yer iminden çıkarıldı</string>
+
+    <!-- Shortcuts -->
+    <string name="shortcut_new_tab_short">Yeni sekme</string>
+    <string name="shortcut_new_tab_long">YBOW\'da yeni sekme aç</string>
+</resources>
