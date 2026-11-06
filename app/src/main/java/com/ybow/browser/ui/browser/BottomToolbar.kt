@@ -1,24 +1,20 @@
 package com.ybow.browser.ui.browser
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.ArrowBack
-import androidx.compose.material.icons.rounded.ArrowForward
 import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material.icons.rounded.MoreHoriz
+import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.Tab
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -28,107 +24,137 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.ybow.browser.R
 
+/** Height of the floating pill itself. */
+val BottomBarHeight = 62.dp
+
+/** Space the scrollable content keeps free at its end so the pill never hides it. */
+val BottomBarContentPadding = 96.dp
+
 /**
- * Floating navigation island. The bar is a translucent pill that hovers above the
- * page with generous side and bottom margins, so the browser feels like it sits on
- * a sheet of glass instead of a full-width system bar.
+ * Floating navigation pill: 16dp side margins, 12dp above the bottom inset, fully
+ * rounded and softly shadowed. It has no strip or backing plate of its own, so page
+ * content stays visible right up to its edge and keeps scrolling underneath.
  */
 @Composable
 fun BottomToolbar(
     canGoBack: Boolean,
-    canGoForward: Boolean,
     tabCount: Int,
-    onBack: () -> Unit,
-    onForward: () -> Unit,
-    onHome: () -> Unit,
     onTabs: () -> Unit,
+    onBack: () -> Unit,
+    onSearch: () -> Unit,
+    onHome: () -> Unit,
     onMenu: () -> Unit,
 ) {
     val colors = MaterialTheme.colorScheme
-    val glass = Brush.verticalGradient(
-        listOf(
-            colors.surface.copy(alpha = 0.97f),
-            colors.surface.copy(alpha = 0.80f),
-        ),
-    )
 
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .navigationBarsPadding()
-            .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 10.dp),
+            .padding(start = 16.dp, end = 16.dp, bottom = 12.dp),
     ) {
-        Row(
+        Surface(
+            shape = CircleShape,
+            color = colors.surface,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(62.dp)
-                .shadow(16.dp, CircleShape)
-                .clip(CircleShape)
-                .background(glass)
-                .border(1.dp, colors.outlineVariant.copy(alpha = 0.55f), CircleShape)
-                .padding(horizontal = 6.dp),
-            verticalAlignment = Alignment.CenterVertically,
+                .height(BottomBarHeight)
+                .shadow(8.dp, CircleShape),
         ) {
-            BarAction(
-                icon = Icons.Rounded.ArrowBack,
-                label = stringResource(R.string.action_back),
-                enabled = canGoBack,
-                onClick = onBack,
-            )
-            BarAction(
-                icon = Icons.Rounded.ArrowForward,
-                label = stringResource(R.string.action_forward),
-                enabled = canGoForward,
-                onClick = onForward,
-            )
+            Row(
+                modifier = Modifier.padding(horizontal = 6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                TabsAction(
+                    tabCount = tabCount,
+                    onClick = onTabs,
+                )
+                BarAction(
+                    icon = Icons.Rounded.ArrowBack,
+                    label = stringResource(R.string.action_back),
+                    enabled = canGoBack,
+                    onClick = onBack,
+                )
+                SearchAction(onClick = onSearch)
+                BarAction(
+                    icon = Icons.Rounded.Home,
+                    label = stringResource(R.string.action_home),
+                    enabled = true,
+                    onClick = onHome,
+                )
+                BarAction(
+                    icon = Icons.Rounded.MoreHoriz,
+                    label = stringResource(R.string.action_menu),
+                    enabled = true,
+                    onClick = onMenu,
+                )
+            }
+        }
+    }
+}
 
+@Composable
+private fun RowScope.TabsAction(
+    tabCount: Int,
+    onClick: () -> Unit,
+) {
+    val colors = MaterialTheme.colorScheme
+    IconButton(
+        onClick = onClick,
+        modifier = Modifier.weight(1f),
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Icon(
+                imageVector = Icons.Rounded.Tab,
+                contentDescription = stringResource(R.string.action_tabs),
+                tint = colors.onSurface,
+                modifier = Modifier.size(23.dp),
+            )
             Surface(
-                onClick = onTabs,
-                shape = RoundedCornerShape(18.dp),
+                shape = CircleShape,
                 color = colors.primary,
                 modifier = Modifier
-                    .padding(horizontal = 4.dp)
-                    .height(42.dp),
+                    .align(Alignment.TopEnd)
+                    .padding(top = 4.dp, end = 2.dp),
             ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 14.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Icon(
-                        imageVector = Icons.Rounded.Tab,
-                        contentDescription = stringResource(R.string.action_tabs),
-                        tint = colors.onPrimary,
-                        modifier = Modifier.size(16.dp),
-                    )
-                    Spacer(Modifier.width(6.dp))
-                    Text(
-                        text = tabCount.toString(),
-                        style = MaterialTheme.typography.labelLarge,
-                        color = colors.onPrimary,
-                    )
-                }
+                Text(
+                    text = tabCount.toString(),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = colors.onPrimary,
+                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp),
+                )
             }
+        }
+    }
+}
 
-            BarAction(
-                icon = Icons.Rounded.Home,
-                label = stringResource(R.string.action_home),
-                enabled = true,
-                onClick = onHome,
-            )
-            BarAction(
-                icon = Icons.Rounded.MoreHoriz,
-                label = stringResource(R.string.action_menu),
-                enabled = true,
-                onClick = onMenu,
-            )
+@Composable
+private fun RowScope.SearchAction(onClick: () -> Unit) {
+    val colors = MaterialTheme.colorScheme
+    Box(
+        modifier = Modifier.weight(1f),
+        contentAlignment = Alignment.Center,
+    ) {
+        Surface(
+            onClick = onClick,
+            shape = CircleShape,
+            color = colors.primary,
+            modifier = Modifier.size(46.dp),
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Icon(
+                    imageVector = Icons.Rounded.Search,
+                    contentDescription = stringResource(R.string.address_bar_hint),
+                    tint = colors.onPrimary,
+                    modifier = Modifier.size(22.dp),
+                )
+            }
         }
     }
 }
@@ -152,7 +178,7 @@ private fun RowScope.BarAction(
             tint = if (enabled) {
                 colors.onSurface
             } else {
-                colors.onSurfaceVariant.copy(alpha = 0.32f)
+                colors.onSurface.copy(alpha = 0.3f)
             },
             modifier = Modifier.size(22.dp),
         )

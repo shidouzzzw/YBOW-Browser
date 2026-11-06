@@ -26,6 +26,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
@@ -107,15 +108,21 @@ fun BrowserScreen(
                     )
                 }
             }
+        }
 
+        // The pill floats over the content: no strip, no backing plate underneath it.
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .align(Alignment.BottomCenter),
+        ) {
             BottomToolbar(
                 canGoBack = tab?.canGoBack == true,
-                canGoForward = tab?.canGoForward == true,
                 tabCount = viewModel.tabs.size,
-                onBack = { viewModel.goBack() },
-                onForward = { viewModel.goForward() },
-                onHome = { viewModel.goHome() },
                 onTabs = { onNavigate(YbowScreen.Tabs) },
+                onBack = { viewModel.goBack() },
+                onSearch = { searchOpen = true },
+                onHome = { viewModel.goHome() },
                 onMenu = { menuOpen = true },
             )
         }
