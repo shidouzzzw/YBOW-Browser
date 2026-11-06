@@ -17,9 +17,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.ArrowForward
@@ -34,19 +31,13 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -61,23 +52,15 @@ object HomeScreenKeys
 fun HomeScreen(
     searchEngineLabel: String,
     bookmarks: List<Bookmark>,
-    onSearch: (String) -> Unit,
+    onOpenSearch: () -> Unit,
     onOpenBookmark: (Bookmark) -> Unit,
     onShowBookmarks: () -> Unit,
     onIncognito: () -> Unit,
 ) {
-    var query by remember { mutableStateOf("") }
     val colors = MaterialTheme.colorScheme
 
-    fun submit() {
-        val text = query.trim()
-        if (text.isEmpty()) return
-        onSearch(text)
-        query = ""
-    }
-
     Box(modifier = Modifier.fillMaxSize()) {
-        SeaBackdrop()
+        SeaWaves()
 
         Column(
             modifier = Modifier
@@ -86,7 +69,7 @@ fun HomeScreen(
                 .padding(horizontal = 20.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Spacer(Modifier.height(48.dp))
+            Spacer(Modifier.height(40.dp))
 
             Box(
                 modifier = Modifier
@@ -126,13 +109,14 @@ fun HomeScreen(
                 color = colors.onSurfaceVariant,
             )
 
-            Spacer(Modifier.height(30.dp))
+            Spacer(Modifier.height(28.dp))
 
             Surface(
+                onClick = onOpenSearch,
                 shape = RoundedCornerShape(28.dp),
                 color = colors.surface,
-                border = BorderStroke(1.dp, colors.outlineVariant.copy(alpha = 0.7f)),
-                shadowElevation = 10.dp,
+                border = BorderStroke(1.dp, colors.outlineVariant.copy(alpha = 0.8f)),
+                shadowElevation = 8.dp,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(58.dp),
@@ -148,37 +132,16 @@ fun HomeScreen(
                         modifier = Modifier.size(20.dp),
                     )
                     Spacer(Modifier.width(12.dp))
-                    BasicTextField(
-                        value = query,
-                        onValueChange = { query = it },
-                        singleLine = true,
-                        textStyle = MaterialTheme.typography.bodyLarge.copy(
-                            color = colors.onSurface,
-                            fontSize = 15.5.sp,
-                        ),
-                        cursorBrush = SolidColor(colors.primary),
-                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                        keyboardActions = KeyboardActions(onSearch = { submit() }),
-                        modifier = Modifier
-                            .weight(1f)
-                            .padding(vertical = 15.dp),
-                        decorationBox = { innerTextField ->
-                            Box {
-                                if (query.isEmpty()) {
-                                    Text(
-                                        text = stringResource(R.string.address_bar_hint),
-                                        style = MaterialTheme.typography.bodyLarge,
-                                        color = colors.onSurfaceVariant,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis,
-                                    )
-                                }
-                                innerTextField()
-                            }
-                        },
+                    Text(
+                        text = stringResource(R.string.address_bar_hint),
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = colors.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f),
                     )
                     Surface(
-                        onClick = { submit() },
+                        onClick = onOpenSearch,
                         shape = CircleShape,
                         color = colors.primary,
                         modifier = Modifier.size(42.dp),
@@ -205,7 +168,7 @@ fun HomeScreen(
                 textAlign = TextAlign.End,
             )
 
-            Spacer(Modifier.height(26.dp))
+            Spacer(Modifier.height(24.dp))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -229,8 +192,8 @@ fun HomeScreen(
             if (bookmarks.isEmpty()) {
                 Surface(
                     shape = MaterialTheme.shapes.large,
-                    color = colors.surface.copy(alpha = 0.75f),
-                    border = BorderStroke(1.dp, colors.outlineVariant.copy(alpha = 0.6f)),
+                    color = colors.surface.copy(alpha = 0.85f),
+                    border = BorderStroke(1.dp, colors.outlineVariant.copy(alpha = 0.7f)),
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 6.dp),
@@ -275,20 +238,20 @@ fun HomeScreen(
                 }
             }
 
-            Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.height(22.dp))
 
             Surface(
                 onClick = onIncognito,
                 shape = MaterialTheme.shapes.extraLarge,
                 color = colors.surface,
-                border = BorderStroke(1.dp, colors.outlineVariant.copy(alpha = 0.6f)),
+                border = BorderStroke(1.dp, colors.outlineVariant.copy(alpha = 0.7f)),
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Box(
                     modifier = Modifier.background(
                         Brush.linearGradient(
                             listOf(
-                                colors.primaryContainer.copy(alpha = 0.75f),
+                                colors.secondaryContainer.copy(alpha = 0.55f),
                                 colors.surface.copy(alpha = 0.2f),
                             ),
                         ),
@@ -302,13 +265,13 @@ fun HomeScreen(
                             modifier = Modifier
                                 .size(42.dp)
                                 .clip(RoundedCornerShape(14.dp))
-                                .background(colors.primary.copy(alpha = 0.14f)),
+                                .background(colors.secondary.copy(alpha = 0.20f)),
                             contentAlignment = Alignment.Center,
                         ) {
                             Icon(
                                 imageVector = Icons.Rounded.VisibilityOff,
                                 contentDescription = null,
-                                tint = colors.primary,
+                                tint = colors.secondary,
                                 modifier = Modifier.size(21.dp),
                             )
                         }
@@ -336,7 +299,7 @@ fun HomeScreen(
                 }
             }
 
-            Spacer(Modifier.height(30.dp))
+            Spacer(Modifier.height(28.dp))
         }
     }
 }
@@ -353,7 +316,7 @@ private fun QuickAccessTile(
         color = MaterialTheme.colorScheme.surface,
         border = BorderStroke(
             1.dp,
-            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f),
+            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.7f),
         ),
         modifier = modifier,
     ) {
@@ -375,36 +338,23 @@ private fun QuickAccessTile(
     }
 }
 
-/**
- * Soft sea gradient with three translucent wave bands. Drawn once behind the
- * home content and deliberately quiet so the search field stays the focus.
- */
+/** Two quiet wave bands anchored to the bottom of the home content. */
 @Composable
-private fun SeaBackdrop() {
+private fun SeaWaves() {
     val colors = MaterialTheme.colorScheme
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    0f to colors.primaryContainer.copy(alpha = 0.85f),
-                    0.42f to colors.background,
-                    1f to colors.background,
-                ),
-            ),
-    ) {
+    Box(modifier = Modifier.fillMaxSize()) {
         Canvas(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(280.dp)
+                .height(220.dp)
                 .align(Alignment.BottomCenter),
         ) {
             val width = size.width
             val height = size.height
-            val step = width / 3f
-            for (index in 0..2) {
-                val baseY = height * (0.58f + index * 0.12f)
-                val amplitude = 20f + index * 12f
+            val step = width / 2f
+            for (index in 0..1) {
+                val baseY = height * (0.66f + index * 0.16f)
+                val amplitude = 22f + index * 14f
                 val path = Path().apply {
                     moveTo(0f, baseY)
                     var x = 0f
@@ -423,7 +373,7 @@ private fun SeaBackdrop() {
                 }
                 drawPath(
                     path = path,
-                    color = colors.primary.copy(alpha = 0.055f - index * 0.014f),
+                    color = colors.secondary.copy(alpha = 0.10f - index * 0.04f),
                 )
             }
         }

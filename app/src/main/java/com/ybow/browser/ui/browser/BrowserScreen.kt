@@ -5,15 +5,20 @@ import android.webkit.WebChromeClient
 import android.widget.FrameLayout
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -22,15 +27,16 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ybow.browser.browser.BrowserViewModel
 import com.ybow.browser.ui.YbowScreen
 import com.ybow.browser.ui.home.HomeScreen
+import com.ybow.browser.ui.search.SearchScreen
 
 @Composable
 fun BrowserScreen(
@@ -40,10 +46,13 @@ fun BrowserScreen(
     val tab = viewModel.activeTab
     val settings by viewModel.settings.collectAsStateWithLifecycle()
     val bookmarks by viewModel.bookmarks.collectAsStateWithLifecycle(emptyList())
+    val history by viewModel.history.collectAsStateWithLifecycle(emptyList())
     var menuOpen by remember { mutableStateOf(false) }
-    val focusManager = LocalFocusManager.current
+    var searchOpen by remember { mutableStateOf(false) }
     val clipboard = LocalClipboardManager.current
     val context = LocalContext.current
+    val colors = MaterialTheme.colorScheme
+    val hasPage = tab?.hasPage == true
 
     val fileChooserLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult(),
@@ -60,54 +69,84 @@ fun BrowserScreen(
         }
     }
 
-    Column(
+    // One continuous surface: no separate panel behind the omnibox or the toolbar.
+    val backdrop = if (hasPage) {
+        Brush.verticalGradient(listOf(colors.surface, colors.surface))
+    } else {
+        Brush.verticalGradient(
+            0f to colors.primaryContainer,
+            0.55f to colors.background,
+            1f to colors.background,
+        )
+    }
+
+    Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-            .windowInsetsPadding(WindowInsets.statusBars)
-            .imePadding(),
+            .background(backdrop),
     ) {
-        AddressBar(
-            tab = tab,
-            onNavigate = { input ->
-                viewModel.navigate(input)
-                focusManager.clearFocus()
-            },
-            onReload = { viewModel.reload() },
-            onStop = { viewModel.stopLoading() },
-        )
-
-        Box(
+        Column(
             modifier = Modifier
-                .weight(1f)
-                .fillMaxWidth()
-                .background(MaterialTheme.colorScheme.background),
+                .fillMaxSize()
+                .windowInsetsPadding(WindowInsets.statusBars)
+                .imePadding(),
         ) {
-            WebViewHost(viewModel = viewModel)
-            if (tab == null || !tab.hasPage) {
-                HomeScreen(
-                    searchEngineLabel = settings.searchEngine.label,
-                    bookmarks = bookmarks,
-                    onSearch = { query ->
-                        viewModel.navigate(query)
-                        focusManager.clearFocus()
-                    },
-                    onOpenBookmark = { bookmark -> viewModel.openUrlInNewTab(bookmark.url) },
-                    onShowBookmarks = { onNavigate(YbowScreen.Bookmarks) },
-                    onIncognito = { viewModel.openNewTab(incognito = true) },
-                )
-            }
-        }
+            AddressBar(
+                tab = tab,
+                onOpenSearch = { searchOpen = true },
+                onReload = { viewModel.reload() },
+                onStop = { viewModel.stopLoading() },
+            )
 
-        BottomToolbar(
-            canGoBack = tab?.canGoBack == true,
-            canGoForward = tab?.canGoForward == true,
-            tabCount = viewModel.tabs.size,
-            onBack = { viewModel.goBack() },
-            onForward = { viewModel.goForward() },
-            onHome = { viewModel.goHome() },
-            onTabs = { onNavigate(YbowScreen.Tabs) },
-            onMenu = { menuOpen = true },
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth(),
+            ) {
+                WebViewHost(viewModel = viewModel)
+                if (!hasPage) {
+                    HomeScreen(
+                        searchEngineLabel = settings.searchEngine.label,
+                        bookmarks = bookmarks,
+                        onOpenSearch = { searchOpen = true },
+                        onOpenBookmark = { bookmark -> viewModel.openUrlInNewTab(bookmark.url) },
+                        onShowBookmarks = { onNavigate(YbowScreen.Bookmarks) },
+                        onIncognito = { viewModel.openNewTab(incognito = true) },
+                    )
+                }
+            }
+
+            BottomToolbar(
+                canGoBack = tab?.canGoBack == true,
+                canGoForward = tab?.canGoForward == true,
+                tabCount = viewModel.tabs.size,
+                onBack = { viewModel.goBack() },
+                onForward = { viewModel.goForward() },
+                onHome = { viewModel.goHome() },
+                onTabs = { onNavigate(YbowScreen.Tabs) },
+                onMenu = { menuOpen = true },
+            )
+        }
+    }
+
+    AnimatedVisibility(
+        visible = searchOpen,
+        enter = fadeIn() + slideInVertically(initialOffsetY = { -it / 6 }),
+        exit = fadeOut() + slideOutVertically(targetOffsetY = { -it / 6 }),
+    ) {
+        SearchScreen(
+            history = history,
+            bookmarks = bookmarks,
+            searchEngineLabel = settings.searchEngine.label,
+            onDismiss = { searchOpen = false },
+            onSubmit = { text ->
+                viewModel.navigate(text)
+                searchOpen = false
+            },
+            onOpenUrl = { url ->
+                viewModel.openUrlInNewTab(url)
+                searchOpen = false
+            },
         )
     }
 
