@@ -9,11 +9,7 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -22,38 +18,26 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import com.ybow.browser.browser.BrowserViewModel
 import com.ybow.browser.ui.browser.BrowserScreen
 import com.ybow.browser.ui.downloads.DownloadsScreen
 import com.ybow.browser.ui.library.BookmarksScreen
 import com.ybow.browser.ui.library.HistoryScreen
 import com.ybow.browser.ui.settings.SettingsScreen
-import com.ybow.browser.ui.tabs.TabsScreen
 import com.ybow.browser.ui.theme.YbowMotion
 
 enum class YbowScreen {
-    Browser, Tabs, Bookmarks, History, Downloads, Settings,
+    Browser, Bookmarks, History, Downloads, Settings,
 }
 
 @Composable
 fun YbowApp(viewModel: BrowserViewModel) {
     var screen by rememberSaveable { mutableStateOf(YbowScreen.Browser) }
-    var lastOverlay by remember { mutableStateOf(YbowScreen.Tabs) }
-    val snackbarHostState = remember { SnackbarHostState() }
+    var lastOverlay by remember { mutableStateOf(YbowScreen.Bookmarks) }
 
     LaunchedEffect(screen) {
         if (screen != YbowScreen.Browser) lastOverlay = screen
-    }
-
-    val message = viewModel.snackbar
-    LaunchedEffect(message) {
-        if (message != null) {
-            snackbarHostState.showSnackbar(message)
-            viewModel.consumeSnackbar()
-        }
     }
 
     Box(
@@ -70,16 +54,16 @@ fun YbowApp(viewModel: BrowserViewModel) {
         AnimatedVisibility(
             visible = screen != YbowScreen.Browser,
             enter = fadeIn(
-                animationSpec = tween(YbowMotion.PageTransitionMillis, easing = YbowMotion.Enter),
+                animationSpec = tween(YbowMotion.DurMillis, easing = YbowMotion.Ease),
             ) + slideInVertically(
-                animationSpec = tween(YbowMotion.PageTransitionMillis, easing = YbowMotion.Enter),
-                initialOffsetY = { it / YbowMotion.PageSlideDivisor },
+                animationSpec = tween(YbowMotion.SlowMillis, easing = YbowMotion.Ease),
+                initialOffsetY = { it / 14 },
             ),
             exit = fadeOut(
-                animationSpec = tween(YbowMotion.PageTransitionMillis, easing = YbowMotion.Exit),
+                animationSpec = tween(YbowMotion.DurMillis, easing = YbowMotion.Ease),
             ) + slideOutVertically(
-                animationSpec = tween(YbowMotion.PageTransitionMillis, easing = YbowMotion.Exit),
-                targetOffsetY = { it / YbowMotion.PageSlideDivisor },
+                animationSpec = tween(YbowMotion.SlowMillis, easing = YbowMotion.Ease),
+                targetOffsetY = { it / 14 },
             ),
         ) {
             Surface(
@@ -88,11 +72,6 @@ fun YbowApp(viewModel: BrowserViewModel) {
             ) {
                 val close: () -> Unit = { screen = YbowScreen.Browser }
                 when (lastOverlay) {
-                    YbowScreen.Tabs -> TabsScreen(
-                        viewModel = viewModel,
-                        onBack = close,
-                    )
-
                     YbowScreen.Bookmarks -> BookmarksScreen(
                         viewModel = viewModel,
                         onBack = close,
@@ -125,13 +104,5 @@ fun YbowApp(viewModel: BrowserViewModel) {
                 }
             }
         }
-
-        SnackbarHost(
-            hostState = snackbarHostState,
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .navigationBarsPadding()
-                .padding(bottom = 72.dp, start = 12.dp, end = 12.dp),
-        )
     }
 }

@@ -1,3 +1,5 @@
+import java.net.URI
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -9,6 +11,29 @@ plugins {
 // through environment variables. No keystore or password is committed to this repository.
 val releaseKeystorePath: String? = System.getenv("YBOW_KEYSTORE_FILE")
 
+// The two design fonts are fetched once at build time and exposed as resources, so the
+// repository holds no binary blobs while every build still bundles Figtree and Unbounded.
+val designFontDir = layout.buildDirectory.dir("generated/design-fonts")
+val downloadDesignFonts = tasks.register("downloadDesignFonts") {
+    val outputDir = designFontDir.map { it.dir("font") }
+    outputs.dir(outputDir)
+    doLast {
+        val target = outputDir.get().asFile
+        target.mkdirs()
+        listOf(
+            "https://raw.githubusercontent.com/google/fonts/main/ofl/figtree/Figtree%5Bwght%5D.ttf" to "figtree_var.ttf",
+            "https://raw.githubusercontent.com/google/fonts/main/ofl/unbounded/Unbounded%5Bwght%5D.ttf" to "unbounded_var.ttf",
+        ).forEach { (url, name) ->
+            val file = target.resolve(name)
+            if (file.length() < 10_000L) {
+                URI(url).toURL().openStream().use { input ->
+                    file.outputStream().use { output -> input.copyTo(output) }
+                }
+            }
+        }
+    }
+}
+
 android {
     namespace = "com.ybow.browser"
     compileSdk = 35
@@ -17,8 +42,8 @@ android {
         applicationId = "com.ybow.browser"
         minSdk = 26
         targetSdk = 35
-        versionCode = 5
-        versionName = "1.4.0"
+        versionCode = 6
+        versionName = "1.5.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables { useSupportLibrary = true }
     }
@@ -76,7 +101,11 @@ android {
     testOptions {
         unitTests.isReturnDefaultValues = true
     }
+
+    sourceSets.getByName("main").res.srcDir(designFontDir)
 }
+
+tasks.named("preBuild") { dependsOn(downloadDesignFonts) }
 
 dependencies {
     implementation(libs.androidx.core.ktx)
