@@ -11,9 +11,9 @@ permissions:
 
 jobs:
   release:
-    name: Build release APK
+    name: Build and publish APK
     runs-on: ubuntu-24.04
-    timeout-minutes: 35
+    timeout-minutes: 40
 
     steps:
       - name: Checkout repository
@@ -54,7 +54,8 @@ jobs:
           echo "$RUNNER_TEMP/gradle-dist/gradle-8.9/bin" >> "$GITHUB_PATH"
 
       # Signing material is never stored in the repository. When the four secrets
-      # below are configured, the release APK is signed; otherwise it is unsigned.
+      # below are configured the release APK is signed with them; otherwise the
+      # workflow also builds a debug-signed, installable APK for the release page.
       - name: Prepare optional signing key
         env:
           SIGNING_KEYSTORE_BASE64: ${{ secrets.SIGNING_KEYSTORE_BASE64 }}
@@ -63,7 +64,7 @@ jobs:
           SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
         run: |
           if [ -z "$SIGNING_KEYSTORE_BASE64" ]; then
-            echo "No signing secrets configured. Building an unsigned release APK."
+            echo "No signing secrets configured. A debug-signed APK will be published."
             exit 0
           fi
           echo "$SIGNING_KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/ybow-release.jks"
@@ -77,22 +78,58 @@ jobs:
       - name: Build release APK
         run: gradle :app:assembleRelease --no-daemon --console=plain
 
-      - name: Upload release APK
+      - name: Build debug-signed APK for testing
+        if: env.YBOW_KEYSTORE_FILE == ''
+        run: gradle :app:assembleDebug --no-daemon --console=plain
+
+      - name: Collect APK files
+        run: |
+          set -e
+          mkdir -p dist
+          if [ -f app/build/outputs/apk/release/app-release.apk ]; then
+            cp app/build/outputs/apk/release/app-release.apk "dist/YBOW-Browser-${GITHUB_REF_NAME}-signed.apk"
+          fi
+          if [ -f app/build/outputs/apk/debug/app-debug.apk ]; then
+            cp app/build/outputs/apk/debug/app-debug.apk "dist/YBOW-Browser-${GITHUB_REF_NAME}-install.apk"
+          fi
+          ls -l dist
+
+      - name: Upload APK artifacts
         uses: actions/upload-artifact@v4
         with:
           name: ybow-browser-release-apk
-          path: app/build/outputs/apk/release/*.apk
+          path: dist/*.apk
           if-no-files-found: error
           retention-days: 30
 
-      - name: Attach APK to GitHub Release
+      - name: Publish GitHub Release
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
-          files: app/build/outputs/apk/release/*.apk
+          name: YBOW Browser ${{ github.ref_name }}
           generate_release_notes: true
+          files: dist/*.apk
           body: |
-            YBOW Browser automated release build.
+            ## YBOW Browser ${{ github.ref_name }}
 
-            If the APK is unsigned, sign it locally with your own keystore before installing.
-            Debug installable builds are published by the Android CI workflow.
+            A modern, minimalist and Chromium-based Android web browser. Kotlin, Jetpack
+            Compose and the Android WebView engine. No ads, no trackers, no analytics and
+            no data leaving your device.
+
+            ### Which file should I install?
+
+            | File | Use it when |
+            | --- | --- |
+            | `YBOW-Browser-${{ github.ref_name }}-install.apk` | **Normal choice.** Signed with the standard Android debug key, installs on any device. |
+            | `YBOW-Browser-${{ github.ref_name }}-signed.apk` | Only exists when the maintainer configured release signing secrets. |
+
+            Supports Android 8.0 (API 26) and newer.
+
+            ### Installing
+
+            1. Download the APK from the **Assets** section below.
+            2. Open it on your phone and confirm the install.
+            3. Allow "install unknown apps" for your file manager or browser if Android asks.
+
+            The debug key is regenerated on every build machine, so uninstall a previous
+            version before installing a build signed with a different key.
