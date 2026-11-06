@@ -27,7 +27,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.AnnotatedString
@@ -69,21 +68,11 @@ fun BrowserScreen(
         }
     }
 
-    // One continuous surface: no separate panel behind the omnibox or the toolbar.
-    val backdrop = if (hasPage) {
-        Brush.verticalGradient(listOf(colors.surface, colors.surface))
-    } else {
-        Brush.verticalGradient(
-            0f to colors.primaryContainer,
-            0.55f to colors.background,
-            1f to colors.background,
-        )
-    }
-
+    // Top bar and body share one background colour, with nothing in between.
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(backdrop),
+            .background(colors.background),
     ) {
         Column(
             modifier = Modifier
