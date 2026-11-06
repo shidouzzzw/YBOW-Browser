@@ -14,14 +14,25 @@ Everything the browser remembers stays in a local database on your phone.
 
 ## Download the APK
 
+Every tagged version is published on the [Releases page](../../releases):
+
+1. Open the [Releases page](../../releases) of this repository.
+2. Pick the newest release and download
+   `YBOW-Browser-<version>-install.apk` (or `-signed.apk` when the build used your
+   own release keystore).
+3. Open the downloaded file on your Android device and confirm the install
+   (Android will ask you to allow "install unknown apps" for your file manager).
+
+These builds are signed with the standard Android debug key, which is enough for
+installing and testing, but that key is regenerated on every build machine, so
+uninstall a previous version before installing a build signed with a different key.
+See [Signing](#signing) for release builds with your own keystore.
+
+### Alternative: CI artifacts
+
 1. Open the **Actions** tab of this repository.
 2. Select the latest successful **Android CI** run.
-3. Download the **ybow-browser-debug-apk** artifact.
-4. Unzip it and install `app-debug.apk` on your Android device
-   (allow "install from unknown sources" for your file manager).
-
-Debug builds are signed with the standard Android debug key, which is enough for
-installing and testing. See [Signing](#signing) for release builds.
+3. Download the **ybow-browser-debug-apk** artifact and unzip it.
 
 ## Features
 
@@ -176,8 +187,15 @@ directly and does not need the wrapper.
 4. builds the debug APK,
 5. uploads the APK and the test report as artifacts.
 
-`.github/workflows/release.yml` runs for `v*` tags and builds the release variant,
-attaching the APK to a GitHub Release.
+`.github/workflows/release.yml` runs for `v*` tags, builds the release variant and
+publishes a GitHub Release with an installable APK attached.
+
+To cut a release, create and push a tag:
+
+```bash
+git tag v1.0.0
+git push origin v1.0.0
+```
 
 ### Signing
 
@@ -190,8 +208,8 @@ these repository secrets and the workflow will use them:
 - `SIGNING_KEY_ALIAS`
 - `SIGNING_KEY_PASSWORD`
 
-Without them the release workflow produces an unsigned APK, which must be signed locally
-before installation.
+Without them the release workflow publishes a debug-signed, installable APK alongside the
+unsigned release build.
 
 ## Roadmap
 
@@ -212,8 +230,9 @@ YBOW, Kotlin + Jetpack Compose + Android WebView (Chromium) ile yazılmış ger�
 Android tarayıcısıdır. Reklam, takip SDK'sı ve analitik içermez; hiçbir veri cihazdan
 çıkmaz.
 
-- **APK indirme:** GitHub'da `Actions` → son başarılı `Android CI` çalışması →
-  `ybow-browser-debug-apk` artifact'i.
+- **APK indirme:** GitHub'da `Releases` sayfası → en yeni sürüm →
+  `YBOW-Browser-...-install.apk` (alternatif: `Actions` → son başarılı `Android CI`
+  çalışması → `ybow-browser-debug-apk` artifact'i).
 - **Özellikler:** gerçek çoklu sekme, adres/arama çubuğu, Google & DuckDuckGo,
   yer imleri, geçmiş, gerçek dosya indirme yöneticisi, açık/koyu tema, gizli sekmeler,
   önbellek ve çerez temizleme.
