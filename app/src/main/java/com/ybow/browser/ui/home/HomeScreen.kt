@@ -44,6 +44,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ybow.browser.R
 import com.ybow.browser.data.local.Bookmark
+import com.ybow.browser.ui.browser.BottomBarContentPadding
 import com.ybow.browser.ui.components.FaviconBadge
 
 object HomeScreenKeys
@@ -299,7 +300,7 @@ fun HomeScreen(
                 }
             }
 
-            Spacer(Modifier.height(28.dp))
+            Spacer(Modifier.height(BottomBarContentPadding))
         }
     }
 }
