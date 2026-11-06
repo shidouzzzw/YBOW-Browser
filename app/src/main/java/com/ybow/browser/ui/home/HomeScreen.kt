@@ -1,14 +1,21 @@
+@file:OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
+
 package com.ybow.browser.ui.home
 
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,29 +24,19 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Add
-import androidx.compose.material.icons.rounded.ArrowForward
-import androidx.compose.material.icons.rounded.BookmarkBorder
-import androidx.compose.material.icons.rounded.ChevronRight
-import androidx.compose.material.icons.rounded.Search
-import androidx.compose.material.icons.rounded.VisibilityOff
-import androidx.compose.material.icons.rounded.Waves
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -49,362 +46,458 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.clipPath
+import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.unit.Dp
 import com.ybow.browser.R
 import com.ybow.browser.data.local.Shortcut
-import com.ybow.browser.ui.browser.BottomBarContentPadding
+import com.ybow.browser.ui.theme.LocalYbowPalette
+import com.ybow.browser.ui.theme.YbowColors
 import com.ybow.browser.ui.theme.YbowMotion
+import com.ybow.browser.ui.theme.TextWordmark
+import com.ybow.browser.ui.theme.YbowIcons
 import com.ybow.browser.ui.theme.pressScale
-import com.ybow.browser.util.FaviconStore
+import com.ybow.browser.ui.theme.rise
+import com.ybow.browser.ui.theme.siteIconBackground
+import com.ybow.browser.ui.theme.siteIconForeground
 import com.ybow.browser.util.UrlTools
 
-object HomeScreenKeys
-
+/**
+ * Home screen ported one to one from the Ybow design: brand block, focusable search
+ * pill, engine switcher, quick access grid, incognito card.
+ */
 @Composable
 fun HomeScreen(
-    searchEngineLabel: String,
     shortcuts: List<Shortcut>,
-    onOpenSearch: () -> Unit,
+    engineLabel: String,
+    incognito: Boolean,
+    onSearch: (String) -> Unit,
+    onCycleEngine: () -> Unit,
+    onOpenBookmarks: () -> Unit,
+    onAddShortcut: () -> Unit,
     onOpenShortcut: (Shortcut) -> Unit,
-    onAddShortcut: (url: String, name: String) -> Unit,
-    onUpdateShortcut: (Shortcut, url: String, name: String) -> Unit,
-    onDeleteShortcut: (Shortcut) -> Unit,
-    onShowBookmarks: () -> Unit,
-    onIncognito: () -> Unit,
+    onHoldShortcut: (Shortcut) -> Unit,
+    onToggleIncognito: () -> Unit,
+    focusSignal: Int,
+    freshShortcutUrl: String?,
 ) {
-    val colors = MaterialTheme.colorScheme
-    val searchSource = remember { MutableInteractionSource() }
-    var editorOpen by remember { mutableStateOf(false) }
-    var editing by remember { mutableStateOf<Shortcut?>(null) }
-    var actionTarget by remember { mutableStateOf<Shortcut?>(null) }
+    val palette = LocalYbowPalette.current
+    val scroll = rememberScrollState()
+    val focusManager = LocalFocusManager.current
+    val keyboard = LocalSoftwareKeyboardController.current
+    val searchFocus = remember { FocusRequester() }
+    var query by remember { mutableStateOf("") }
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        SeaWaves()
-
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            Spacer(Modifier.height(40.dp))
-
-            Box(
-                modifier = Modifier
-                    .size(62.dp)
-                    .clip(RoundedCornerShape(21.dp))
-                    .background(
-                        Brush.linearGradient(
-                            listOf(colors.primary, colors.secondary),
-                        ),
-                    ),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    imageVector = Icons.Rounded.Waves,
-                    contentDescription = null,
-                    tint = colors.onPrimary,
-                    modifier = Modifier.size(32.dp),
-                )
-            }
-
-            Spacer(Modifier.height(16.dp))
-
-            Text(
-                text = "YBOW",
-                style = MaterialTheme.typography.displayLarge.copy(
-                    letterSpacing = 9.sp,
-                    fontWeight = FontWeight.Black,
-                ),
-                color = colors.onBackground,
-            )
-
-            Spacer(Modifier.height(6.dp))
-
-            Text(
-                text = stringResource(R.string.app_tagline),
-                style = MaterialTheme.typography.bodyMedium,
-                color = colors.onSurfaceVariant,
-            )
-
-            Spacer(Modifier.height(28.dp))
-
-            Surface(
-                onClick = onOpenSearch,
-                interactionSource = searchSource,
-                shape = RoundedCornerShape(28.dp),
-                color = colors.surface,
-                border = BorderStroke(1.dp, colors.outlineVariant.copy(alpha = 0.8f)),
-                shadowElevation = 8.dp,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(58.dp)
-                    .pressScale(searchSource, YbowMotion.SearchPressScale),
-            ) {
-                Row(
-                    modifier = Modifier.padding(start = 16.dp, end = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Icon(
-                        imageVector = Icons.Rounded.Search,
-                        contentDescription = null,
-                        tint = colors.primary,
-                        modifier = Modifier.size(20.dp),
-                    )
-                    Spacer(Modifier.width(12.dp))
-                    Text(
-                        text = stringResource(R.string.address_bar_hint),
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = colors.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f),
-                    )
-                    Surface(
-                        onClick = onOpenSearch,
-                        shape = CircleShape,
-                        color = colors.primary,
-                        modifier = Modifier.size(42.dp),
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Icon(
-                                imageVector = Icons.Rounded.ArrowForward,
-                                contentDescription = stringResource(R.string.action_go),
-                                tint = colors.onPrimary,
-                                modifier = Modifier.size(20.dp),
-                            )
-                        }
-                    }
-                }
-            }
-
-            Text(
-                text = stringResource(R.string.home_search_engine, searchEngineLabel),
-                style = MaterialTheme.typography.labelMedium,
-                color = colors.onSurfaceVariant,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 10.dp, end = 4.dp),
-                textAlign = TextAlign.End,
-            )
-
-            Spacer(Modifier.height(24.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    text = stringResource(R.string.home_quick_access),
-                    style = MaterialTheme.typography.titleLarge,
-                    color = colors.onBackground,
-                )
-                Spacer(Modifier.width(8.dp))
-                Surface(
-                    onClick = {
-                        editing = null
-                        editorOpen = true
-                    },
-                    shape = CircleShape,
-                    color = colors.primary.copy(alpha = 0.16f),
-                    modifier = Modifier.size(28.dp),
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Icon(
-                            imageVector = Icons.Rounded.Add,
-                            contentDescription = stringResource(R.string.shortcut_add),
-                            tint = colors.primary,
-                            modifier = Modifier.size(17.dp),
-                        )
-                    }
-                }
-                Spacer(Modifier.weight(1f))
-                TextButton(onClick = onShowBookmarks) {
-                    Text(
-                        text = stringResource(R.string.bookmarks_title),
-                        style = MaterialTheme.typography.labelLarge,
-                        color = colors.primary,
-                    )
-                }
-            }
-
-            if (shortcuts.isEmpty()) {
-                Surface(
-                    shape = RoundedCornerShape(18.dp),
-                    color = colors.surface.copy(alpha = 0.85f),
-                    border = BorderStroke(1.dp, colors.outlineVariant.copy(alpha = 0.7f)),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 6.dp),
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Icon(
-                            imageVector = Icons.Rounded.BookmarkBorder,
-                            contentDescription = null,
-                            tint = colors.primary,
-                            modifier = Modifier.size(18.dp),
-                        )
-                        Spacer(Modifier.width(10.dp))
-                        Text(
-                            text = stringResource(R.string.shortcut_empty),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = colors.onSurfaceVariant,
-                            modifier = Modifier.weight(1f),
-                        )
-                    }
-                }
-            } else {
-                shortcuts.chunked(4).forEach { rowItems ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 5.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        rowItems.forEach { shortcut ->
-                            ShortcutTile(
-                                shortcut = shortcut,
-                                modifier = Modifier.weight(1f),
-                                onClick = { onOpenShortcut(shortcut) },
-                                onLongClick = { actionTarget = shortcut },
-                            )
-                        }
-                        repeat(4 - rowItems.size) {
-                            Spacer(Modifier.weight(1f))
-                        }
-                    }
-                }
-            }
-
-            Spacer(Modifier.height(22.dp))
-
-            Surface(
-                onClick = onIncognito,
-                shape = MaterialTheme.shapes.extraLarge,
-                color = colors.surface,
-                border = BorderStroke(1.dp, colors.outlineVariant.copy(alpha = 0.7f)),
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Box(
-                    modifier = Modifier.background(
-                        Brush.linearGradient(
-                            listOf(
-                                colors.secondaryContainer.copy(alpha = 0.55f),
-                                colors.surface.copy(alpha = 0.2f),
-                            ),
-                        ),
-                    ),
-                ) {
-                    Row(
-                        modifier = Modifier.padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(42.dp)
-                                .clip(RoundedCornerShape(14.dp))
-                                .background(colors.secondary.copy(alpha = 0.20f)),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Icon(
-                                imageVector = Icons.Rounded.VisibilityOff,
-                                contentDescription = null,
-                                tint = colors.secondary,
-                                modifier = Modifier.size(21.dp),
-                            )
-                        }
-                        Spacer(Modifier.width(14.dp))
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = stringResource(R.string.home_incognito),
-                                style = MaterialTheme.typography.titleMedium,
-                                color = colors.onSurface,
-                            )
-                            Spacer(Modifier.height(2.dp))
-                            Text(
-                                text = stringResource(R.string.home_incognito_hint),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = colors.onSurfaceVariant,
-                            )
-                        }
-                        Icon(
-                            imageVector = Icons.Rounded.ChevronRight,
-                            contentDescription = null,
-                            tint = colors.onSurfaceVariant,
-                            modifier = Modifier.size(20.dp),
-                        )
-                    }
-                }
-            }
-
-            Spacer(Modifier.height(BottomBarContentPadding))
+    LaunchedEffect(focusSignal) {
+        if (focusSignal > 0) {
+            kotlinx.coroutines.delay(YbowMotion.FocusDelayMillis)
+            runCatching { searchFocus.requestFocus() }
+            scroll.animateScrollTo(0)
         }
     }
 
-    if (editorOpen) {
-        ShortcutEditorDialog(
-            initial = editing,
-            onDismiss = {
-                editorOpen = false
-                editing = null
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(palette.bg)
+            .verticalScroll(scroll)
+            .padding(horizontal = 20.dp)
+            .padding(top = 60.dp, bottom = 128.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        BrandBlock(palette = palette, incognito = incognito, modifier = Modifier.rise(0))
+
+        Spacer(Modifier.height(34.dp))
+
+        SearchPill(
+            palette = palette,
+            query = query,
+            onQueryChange = { query = it },
+            focusRequester = searchFocus,
+            onSubmit = {
+                val text = query.trim()
+                if (text.isNotEmpty()) {
+                    keyboard?.hide()
+                    focusManager.clearFocus()
+                    query = ""
+                    onSearch(text)
+                }
             },
-            onConfirm = { url, name ->
-                val target = editing
-                if (target == null) onAddShortcut(url, name) else onUpdateShortcut(target, url, name)
-                editorOpen = false
-                editing = null
-            },
+            modifier = Modifier.rise(3),
+        )
+
+        EngineRow(
+            palette = palette,
+            engineLabel = engineLabel,
+            onCycle = onCycleEngine,
+            modifier = Modifier
+                .fillMaxWidth()
+                .rise(4),
+        )
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 34.dp, bottom = 16.dp)
+                .rise(5),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = stringResource(R.string.home_quick_access),
+                style = TextStyle(
+                    fontSize = 21.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = (-0.2).sp,
+                ),
+                color = palette.text,
+                modifier = Modifier.weight(1f),
+            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(14.dp),
+            ) {
+                LinkText(text = stringResource(R.string.bookmarks_title), onClick = onOpenBookmarks)
+                AddButton(palette = palette, onClick = onAddShortcut)
+            }
+        }
+
+        if (shortcuts.isEmpty()) {
+            EmptyShortcuts(palette = palette)
+        } else {
+            shortcuts.chunked(4).forEach { rowItems ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 10.dp)
+                        .rise(6),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    rowItems.forEach { shortcut ->
+                        ShortcutTile(
+                            shortcut = shortcut,
+                            fresh = shortcut.url == freshShortcutUrl,
+                            modifier = Modifier.weight(1f),
+                            onOpen = { onOpenShortcut(shortcut) },
+                            onHold = { onHoldShortcut(shortcut) },
+                        )
+                    }
+                    repeat(4 - rowItems.size) {
+                        Spacer(Modifier.weight(1f))
+                    }
+                }
+            }
+        }
+
+        IncognitoCard(
+            palette = palette,
+            incognito = incognito,
+            onToggle = onToggleIncognito,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 30.dp)
+                .rise(7),
         )
     }
+}
 
-    actionTarget?.let { shortcut ->
-        AlertDialog(
-            onDismissRequest = { actionTarget = null },
-            title = { Text(shortcut.title) },
-            text = {
-                Column {
-                    TextButton(
-                        onClick = {
-                            actionTarget = null
-                            editing = shortcut
-                            editorOpen = true
-                        },
-                    ) {
-                        Text(stringResource(R.string.shortcut_edit), color = colors.primary)
-                    }
-                    TextButton(
-                        onClick = {
-                            actionTarget = null
-                            onDeleteShortcut(shortcut)
-                        },
-                    ) {
-                        Text(stringResource(R.string.shortcut_delete), color = colors.primary)
+@Composable
+private fun BrandBlock(
+    palette: com.ybow.browser.ui.theme.YbowPalette,
+    incognito: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        WaveLogo(incognito = incognito)
+        Spacer(Modifier.height(26.dp))
+        Text(
+            text = "YBOW",
+            style = TextWordmark,
+            color = palette.text,
+        )
+        Spacer(Modifier.height(14.dp))
+        Text(
+            text = if (incognito) {
+                "Sessiz, hızlı, iz bırakmaz."
+            } else {
+                "Sessiz, hızlı, senin."
+            },
+            style = TextStyle(fontSize = 16.sp),
+            color = palette.muted,
+        )
+    }
+}
+
+/** Rounded gradient tile with three endlessly drifting wave lines, as in the mock. */
+@Composable
+private fun WaveLogo(incognito: Boolean) {
+    val transition = rememberInfiniteTransition(label = "logoWave")
+    val shift by transition.animateFloat(
+        initialValue = 0f,
+        targetValue = 18f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(3200, easing = LinearEasing),
+            repeatMode = androidx.compose.animation.core.RepeatMode.Restart,
+        ),
+        label = "waveShift",
+    )
+    val start = if (incognito) YbowColors.LogoPink else YbowColors.LogoBlue
+    val end = if (incognito) YbowColors.LogoBlue else YbowColors.LogoPink
+
+    Canvas(
+        modifier = Modifier
+            .size(92.dp)
+            .clip(RoundedCornerShape(28.dp)),
+    ) {
+        drawRect(brush = Brush.linearGradient(listOf(start, end)))
+        val unit = size.width / 64f
+        val waveClip = Path().apply {
+            addRoundRect(
+                androidx.compose.ui.geometry.RoundRect(
+                    left = 14f * unit,
+                    top = 14f * unit,
+                    right = 50f * unit,
+                    bottom = 50f * unit,
+                    radiusX = 4f * unit,
+                    radiusY = 4f * unit,
+                ),
+            )
+        }
+        clipPath(waveClip) {
+            for (row in 0 until 3) {
+                val baseY = (22f + row * 10f) * unit
+                val path = Path().apply {
+                    var x = -18f * unit - 18f * unit + shift * unit
+                    moveTo(x, baseY)
+                    while (x < size.width + 18f * unit) {
+                        quadraticTo(
+                            x + 4.5f * unit,
+                            baseY - 5f * unit,
+                            x + 9f * unit,
+                            baseY,
+                        )
+                        quadraticTo(
+                            x + 13.5f * unit,
+                            baseY + 5f * unit,
+                            x + 18f * unit,
+                            baseY,
+                        )
+                        x += 18f * unit
                     }
                 }
-            },
-            confirmButton = {},
-            dismissButton = {
-                TextButton(onClick = { actionTarget = null }) {
-                    Text(stringResource(R.string.shortcut_cancel))
+                drawPath(
+                    path = path,
+                    color = YbowColors.Background,
+                    style = Stroke(width = 3.4f * unit, cap = androidx.compose.ui.graphics.StrokeCap.Round),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun SearchPill(
+    palette: com.ybow.browser.ui.theme.YbowPalette,
+    query: String,
+    onQueryChange: (String) -> Unit,
+    focusRequester: FocusRequester,
+    onSubmit: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val interaction = remember { MutableInteractionSource() }
+    val focused by interaction.collectIsFocusedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (focused) 1.025f else 1f,
+        animationSpec = tween(YbowMotion.DurMillis, easing = YbowMotion.Spring),
+        label = "searchScale",
+    )
+    val accent = palette.accent
+
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(62.dp)
+            .graphicsLayerScale(scale)
+            .clip(CircleShape)
+            .background(palette.card)
+            .border(
+                width = 1.dp,
+                color = if (focused) accent else palette.line,
+                shape = CircleShape,
+            )
+            .padding(start = 20.dp, end = 7.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            imageVector = YbowIcons.Search,
+            contentDescription = null,
+            tint = if (focused) accent else palette.muted,
+            modifier = Modifier.size(22.dp),
+        )
+        Spacer(Modifier.width(12.dp))
+        BasicTextField(
+            value = query,
+            onValueChange = onQueryChange,
+            singleLine = true,
+            textStyle = TextStyle(fontSize = 17.sp, color = palette.text),
+            cursorBrush = SolidColor(accent),
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+            keyboardActions = KeyboardActions(onSearch = { onSubmit() }),
+            interactionSource = interaction,
+            modifier = Modifier
+                .weight(1f)
+                .focusRequester(focusRequester),
+            decorationBox = { inner ->
+                Box(contentAlignment = Alignment.CenterStart) {
+                    if (query.isEmpty()) {
+                        Text(
+                            text = stringResource(R.string.address_bar_hint),
+                            style = TextStyle(fontSize = 17.sp),
+                            color = palette.muted,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                    inner()
                 }
             },
+        )
+        Spacer(Modifier.width(8.dp))
+        GoButton(palette = palette, onClick = onSubmit)
+    }
+}
+
+@Composable
+private fun GoButton(palette: com.ybow.browser.ui.theme.YbowPalette, onClick: () -> Unit) {
+    val source = remember { MutableInteractionSource() }
+    Box(
+        modifier = Modifier
+            .size(48.dp)
+            .pressScale(source, YbowMotion.PressGo)
+            .clip(CircleShape)
+            .background(palette.accent)
+            .combinedClickable(
+                interactionSource = source,
+                indication = null,
+                onClick = onClick,
+            ),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            imageVector = YbowIcons.Arrow,
+            contentDescription = stringResource(R.string.action_go),
+            tint = palette.bg,
+            modifier = Modifier.size(22.dp),
+        )
+    }
+}
+
+@Composable
+private fun EngineRow(
+    palette: com.ybow.browser.ui.theme.YbowPalette,
+    engineLabel: String,
+    onCycle: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    var flick by remember { mutableStateOf(false) }
+    LaunchedEffect(engineLabel) {
+        flick = true
+        kotlinx.coroutines.delay(300)
+        flick = false
+    }
+    val alpha by animateFloatAsState(
+        targetValue = if (flick) 1f else 1f,
+        label = "engineFlick",
+    )
+
+    Row(
+        modifier = modifier.padding(top = 10.dp),
+        horizontalArrangement = Arrangement.End,
+    ) {
+        Row(
+            modifier = Modifier
+                .clip(RoundedCornerShape(8.dp))
+                .combinedClickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null,
+                    onClick = onCycle,
+                )
+                .padding(horizontal = 2.dp, vertical = 4.dp),
+        ) {
+            Text(text = "Arama motoru: ", style = TextStyle(fontSize = 13.5.sp), color = palette.muted)
+            Text(
+                text = engineLabel,
+                style = TextStyle(fontSize = 13.5.sp, fontWeight = FontWeight.SemiBold),
+                color = palette.text,
+                modifier = Modifier.graphicsLayerAlpha(alpha),
+            )
+        }
+    }
+}
+
+@Composable
+private fun LinkText(text: String, onClick: () -> Unit) {
+    val palette = LocalYbowPalette.current
+    Text(
+        text = text,
+        style = TextStyle(fontSize = 14.5.sp, fontWeight = FontWeight.SemiBold),
+        color = palette.accent,
+        modifier = Modifier
+            .clip(RoundedCornerShape(6.dp))
+            .combinedClickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                onClick = onClick,
+            ),
+    )
+}
+
+@Composable
+private fun AddButton(palette: com.ybow.browser.ui.theme.YbowPalette, onClick: () -> Unit) {
+    val source = remember { MutableInteractionSource() }
+    Box(
+        modifier = Modifier
+            .size(30.dp)
+            .pressScale(source, YbowMotion.PressAdd, rotate = 90f)
+            .clip(CircleShape)
+            .background(palette.card)
+            .border(1.dp, palette.line, CircleShape)
+            .combinedClickable(
+                interactionSource = source,
+                indication = null,
+                onClick = onClick,
+            ),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            imageVector = YbowIcons.Plus,
+            contentDescription = stringResource(R.string.shortcut_add),
+            tint = palette.accent,
+            modifier = Modifier.size(16.dp),
         )
     }
 }
@@ -413,38 +506,61 @@ fun HomeScreen(
 @Composable
 private fun ShortcutTile(
     shortcut: Shortcut,
+    fresh: Boolean,
     modifier: Modifier = Modifier,
-    onClick: () -> Unit,
-    onLongClick: () -> Unit,
+    onOpen: () -> Unit,
+    onHold: () -> Unit,
 ) {
-    var appeared by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) { appeared = true }
-    val entrance by animateFloatAsState(
-        targetValue = if (appeared) 1f else 0f,
-        animationSpec = tween(YbowMotion.ShortcutInMillis, easing = YbowMotion.ShortcutIn),
-        label = "shortcutEntrance",
+    val palette = LocalYbowPalette.current
+    val host = UrlTools.hostOf(shortcut.url)
+    var held by remember { mutableStateOf(false) }
+    val scale by animateFloatAsState(
+        targetValue = if (held) YbowMotion.HeldTile else 1f,
+        animationSpec = tween(YbowMotion.DurMillis, easing = YbowMotion.Spring),
+        label = "heldScale",
+    )
+    val pop by animateFloatAsState(
+        targetValue = if (fresh) 1f else 0f,
+        animationSpec = tween(YbowMotion.PopMillis, easing = YbowMotion.Spring),
+        label = "pop",
     )
 
     Column(
         modifier = modifier
-            .graphicsLayer {
-                alpha = entrance
-                val scale = YbowMotion.ShortcutStartScale +
-                    (1f - YbowMotion.ShortcutStartScale) * entrance
-                scaleX = scale
-                scaleY = scale
-            }
+            .graphicsLayerScale(scale, pop)
             .clip(RoundedCornerShape(16.dp))
-            .combinedClickable(onClick = onClick, onLongClick = onLongClick)
-            .padding(vertical = 4.dp, horizontal = 2.dp),
+            .combinedClickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                onClick = onOpen,
+                onLongClick = {
+                    held = true
+                    onHold()
+                    held = false
+                },
+            )
+            .padding(vertical = 4.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        ShortcutIcon(url = shortcut.url, size = 46.dp)
-        Spacer(Modifier.height(6.dp))
+        Box(
+            modifier = Modifier
+                .size(52.dp)
+                .clip(CircleShape)
+                .background(siteIconBackground(host))
+                .border(1.dp, Color.White.copy(alpha = 0.08f), CircleShape),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                text = shortcut.title.take(1).uppercase(),
+                style = TextStyle(fontSize = 20.sp, fontWeight = FontWeight.Bold),
+                color = siteIconForeground(host),
+            )
+        }
+        Spacer(Modifier.height(8.dp))
         Text(
             text = shortcut.title,
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurface,
+            style = TextStyle(fontSize = 12.5.sp),
+            color = palette.muted,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             textAlign = TextAlign.Center,
@@ -452,148 +568,156 @@ private fun ShortcutTile(
     }
 }
 
-/** Round favicon for a shortcut, falling back to the site's first letter. */
 @Composable
-private fun ShortcutIcon(url: String, size: Dp) {
-    val colors = MaterialTheme.colorScheme
-    var icon by remember(url) { mutableStateOf(FaviconStore.cached(url)) }
-
-    LaunchedEffect(url) {
-        if (icon == null) icon = FaviconStore.load(url)
-    }
-
-    val bitmap: ImageBitmap? = icon
-    if (bitmap != null) {
-        Image(
-            bitmap = bitmap,
+private fun EmptyShortcuts(palette: com.ybow.browser.ui.theme.YbowPalette) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(18.dp))
+            .background(palette.card)
+            .dashedBorder(palette.line, 18.dp)
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            imageVector = YbowIcons.Bookmark,
             contentDescription = null,
-            contentScale = ContentScale.Crop,
-            modifier = Modifier
-                .size(size)
-                .clip(CircleShape)
-                .background(colors.surface),
+            tint = palette.muted,
+            modifier = Modifier.size(22.dp),
         )
-    } else {
-        val letter = UrlTools.hostOf(url)
-            .firstOrNull { it.isLetterOrDigit() }
-            ?.uppercaseChar()
-            ?.toString()
-            .orEmpty()
-        Box(
-            modifier = Modifier
-                .size(size)
-                .clip(CircleShape)
-                .background(colors.primary.copy(alpha = 0.18f)),
-            contentAlignment = Alignment.Center,
-        ) {
-            Text(
-                text = letter,
-                style = MaterialTheme.typography.titleMedium,
-                color = colors.primary,
-            )
-        }
+        Spacer(Modifier.width(12.dp))
+        Text(
+            text = "Kısayol yok. Sağ üstteki + ile site ekle.",
+            style = TextStyle(fontSize = 14.sp),
+            color = palette.muted,
+        )
     }
 }
 
 @Composable
-private fun ShortcutEditorDialog(
-    initial: Shortcut?,
-    onDismiss: () -> Unit,
-    onConfirm: (url: String, name: String) -> Unit,
+private fun IncognitoCard(
+    palette: com.ybow.browser.ui.theme.YbowPalette,
+    incognito: Boolean,
+    onToggle: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
-    var address by remember { mutableStateOf(initial?.url.orEmpty()) }
-    var name by remember { mutableStateOf(initial?.title.orEmpty()) }
-    val colors = MaterialTheme.colorScheme
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = {
-            Text(
-                stringResource(
-                    if (initial == null) R.string.shortcut_add_title else R.string.shortcut_edit_title,
+    val source = remember { MutableInteractionSource() }
+    val pink = palette.pink
+    Row(
+        modifier = modifier
+            .pressScale(source, YbowMotion.PressCard)
+            .clip(RoundedCornerShape(24.dp))
+            .background(
+                Brush.linearGradient(
+                    listOf(
+                        lerpColor(palette.card, pink, 0.10f),
+                        palette.card,
+                    ),
                 ),
             )
-        },
-        text = {
-            Column {
-                OutlinedTextField(
-                    value = address,
-                    onValueChange = { address = it },
-                    singleLine = true,
-                    label = { Text(stringResource(R.string.shortcut_url_label)) },
-                    placeholder = { Text(stringResource(R.string.shortcut_url_hint)) },
-                    keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Uri,
-                        imeAction = ImeAction.Next,
-                    ),
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                Spacer(Modifier.height(10.dp))
-                OutlinedTextField(
-                    value = name,
-                    onValueChange = { name = it },
-                    singleLine = true,
-                    label = { Text(stringResource(R.string.shortcut_name_label)) },
-                    placeholder = { Text(stringResource(R.string.shortcut_name_hint)) },
-                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                    modifier = Modifier.fillMaxWidth(),
-                )
-            }
-        },
-        confirmButton = {
-            TextButton(
-                onClick = { onConfirm(address, name) },
-                enabled = address.isNotBlank(),
-            ) {
-                Text(stringResource(R.string.shortcut_save), color = colors.primary)
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(stringResource(R.string.shortcut_cancel))
-            }
-        },
-    )
-}
-
-/** Two quiet wave bands anchored to the bottom of the home content. */
-@Composable
-private fun SeaWaves() {
-    val colors = MaterialTheme.colorScheme
-    Box(modifier = Modifier.fillMaxSize()) {
-        Canvas(
+            .border(1.dp, palette.line, RoundedCornerShape(24.dp))
+            .combinedClickable(
+                interactionSource = source,
+                indication = null,
+                onClick = onToggle,
+            )
+            .padding(16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(14.dp),
+    ) {
+        Box(
             modifier = Modifier
-                .fillMaxWidth()
-                .height(220.dp)
-                .align(Alignment.BottomCenter),
+                .size(46.dp)
+                .clip(RoundedCornerShape(15.dp))
+                .background(lerpColor(palette.bg, pink, 0.28f)),
+            contentAlignment = Alignment.Center,
         ) {
-            val width = size.width
-            val height = size.height
-            val step = width / 2f
-            for (index in 0..1) {
-                val baseY = height * (0.66f + index * 0.16f)
-                val amplitude = 22f + index * 14f
-                val path = Path().apply {
-                    moveTo(0f, baseY)
-                    var x = 0f
-                    while (x < width) {
-                        quadraticBezierTo(
-                            x + step / 2f,
-                            baseY - amplitude,
-                            x + step,
-                            baseY,
-                        )
-                        x += step
-                    }
-                    lineTo(width, height)
-                    lineTo(0f, height)
-                    close()
-                }
-                drawPath(
-                    path = path,
-                    color = colors.secondary.copy(alpha = 0.10f - index * 0.04f),
-                )
-            }
+            Icon(
+                imageVector = YbowIcons.EyeOff,
+                contentDescription = null,
+                tint = pink,
+                modifier = Modifier.size(22.dp),
+            )
         }
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = "Gizli mod",
+                style = TextStyle(fontSize = 17.sp, fontWeight = FontWeight.Bold),
+                color = palette.text,
+            )
+            Spacer(Modifier.height(2.dp))
+            Text(
+                text = if (incognito) {
+                    "Açık. Bu sekmede geçmiş kaydedilmiyor."
+                } else {
+                    "Bu sekmede geçmiş kaydedilmez."
+                },
+                style = TextStyle(fontSize = 13.5.sp),
+                color = palette.muted,
+            )
+        }
+        YbowSwitch(palette = palette, checked = incognito)
     }
 }
+
+@Composable
+private fun YbowSwitch(palette: com.ybow.browser.ui.theme.YbowPalette, checked: Boolean) {
+    val knob by animateDpAsState(
+        targetValue = if (checked) 18.dp else 0.dp,
+        animationSpec = tween(YbowMotion.DurMillis, easing = YbowMotion.Spring),
+        label = "switchKnob",
+    )
+    val track by animateFloatAsState(
+        targetValue = if (checked) 1f else 0f,
+        animationSpec = tween(YbowMotion.DurMillis),
+        label = "switchTrack",
+    )
+    Box(
+        modifier = Modifier
+            .width(46.dp)
+            .height(28.dp)
+            .clip(CircleShape)
+            .background(lerpColor(palette.bg, palette.accent, 0.30f * track))
+            .border(1.dp, if (checked) palette.accent else palette.line, CircleShape)
+            .padding(3.dp),
+        contentAlignment = Alignment.CenterStart,
+    ) {
+        Box(
+            modifier = Modifier
+                .offset(x = knob)
+                .size(20.dp)
+                .clip(CircleShape)
+                .background(lerpColor(palette.muted, palette.accent, track)),
+        )
+    }
+}
+
+// ---------------------------------------------------------------- small helpers
+
+private fun Modifier.graphicsLayerScale(scale: Float, pop: Float = 0f): Modifier =
+    graphicsLayer {
+        scaleX = scale * (if (pop > 0f) 0.3f + 0.7f * pop else 1f)
+        scaleY = scale * (if (pop > 0f) 0.3f + 0.7f * pop else 1f)
+        alpha = if (pop > 0f) pop else 1f
+    }
+
+private fun Modifier.graphicsLayerAlpha(alpha: Float): Modifier =
+    graphicsLayer { this.alpha = alpha }
+
+private fun Modifier.dashedBorder(color: Color, radius: androidx.compose.ui.unit.Dp): Modifier =
+    drawBehind {
+        val stroke = Stroke(
+            width = 1.dp.toPx(),
+            pathEffect = PathEffect.dashPathEffect(floatArrayOf(6f, 5f)),
+        )
+        drawRoundRect(
+            color = color,
+            topLeft = Offset.Zero,
+            size = Size(size.width, size.height),
+            cornerRadius = androidx.compose.ui.geometry.CornerRadius(radius.toPx()),
+            style = stroke,
+        )
+    }
+
+private fun lerpColor(from: Color, to: Color, fraction: Float): Color =
+    androidx.compose.ui.graphics.lerp(from, to, fraction.coerceIn(0f, 1f))
