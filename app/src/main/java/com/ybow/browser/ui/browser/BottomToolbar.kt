@@ -1,6 +1,7 @@
 package com.ybow.browser.ui.browser
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
@@ -22,6 +23,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
@@ -29,6 +31,8 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.ybow.browser.R
+import com.ybow.browser.ui.theme.YbowMotion
+import com.ybow.browser.ui.theme.pressScale
 
 /** Height of the floating pill itself. */
 val BottomBarHeight = 62.dp
@@ -105,9 +109,13 @@ private fun RowScope.TabsAction(
     onClick: () -> Unit,
 ) {
     val colors = MaterialTheme.colorScheme
+    val source = remember { MutableInteractionSource() }
     IconButton(
         onClick = onClick,
-        modifier = Modifier.weight(1f),
+        interactionSource = source,
+        modifier = Modifier
+            .weight(1f)
+            .pressScale(source, YbowMotion.BarPressScale),
     ) {
         Box(contentAlignment = Alignment.Center) {
             Icon(
@@ -137,15 +145,19 @@ private fun RowScope.TabsAction(
 @Composable
 private fun RowScope.SearchAction(onClick: () -> Unit) {
     val colors = MaterialTheme.colorScheme
+    val source = remember { MutableInteractionSource() }
     Box(
         modifier = Modifier.weight(1f),
         contentAlignment = Alignment.Center,
     ) {
         Surface(
             onClick = onClick,
+            interactionSource = source,
             shape = CircleShape,
             color = colors.primary,
-            modifier = Modifier.size(46.dp),
+            modifier = Modifier
+                .size(46.dp)
+                .pressScale(source, YbowMotion.BarPressScale),
         ) {
             Box(contentAlignment = Alignment.Center) {
                 Icon(
@@ -167,10 +179,14 @@ private fun RowScope.BarAction(
     onClick: () -> Unit,
 ) {
     val colors = MaterialTheme.colorScheme
+    val source = remember { MutableInteractionSource() }
     IconButton(
         onClick = onClick,
         enabled = enabled,
-        modifier = Modifier.weight(1f),
+        interactionSource = source,
+        modifier = Modifier
+            .weight(1f)
+            .pressScale(source, YbowMotion.BarPressScale),
     ) {
         Icon(
             imageVector = icon,

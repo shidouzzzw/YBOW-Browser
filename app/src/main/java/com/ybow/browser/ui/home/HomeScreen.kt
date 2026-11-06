@@ -1,11 +1,14 @@
 package com.ybow.browser.ui.home
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -49,6 +52,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -62,6 +66,8 @@ import androidx.compose.ui.unit.sp
 import com.ybow.browser.R
 import com.ybow.browser.data.local.Shortcut
 import com.ybow.browser.ui.browser.BottomBarContentPadding
+import com.ybow.browser.ui.theme.YbowMotion
+import com.ybow.browser.ui.theme.pressScale
 import com.ybow.browser.util.FaviconStore
 import com.ybow.browser.util.UrlTools
 
@@ -80,6 +86,7 @@ fun HomeScreen(
     onIncognito: () -> Unit,
 ) {
     val colors = MaterialTheme.colorScheme
+    val searchSource = remember { MutableInteractionSource() }
     var editorOpen by remember { mutableStateOf(false) }
     var editing by remember { mutableStateOf<Shortcut?>(null) }
     var actionTarget by remember { mutableStateOf<Shortcut?>(null) }
@@ -138,13 +145,15 @@ fun HomeScreen(
 
             Surface(
                 onClick = onOpenSearch,
+                interactionSource = searchSource,
                 shape = RoundedCornerShape(28.dp),
                 color = colors.surface,
                 border = BorderStroke(1.dp, colors.outlineVariant.copy(alpha = 0.8f)),
                 shadowElevation = 8.dp,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(58.dp),
+                    .height(58.dp)
+                    .pressScale(searchSource, YbowMotion.SearchPressScale),
             ) {
                 Row(
                     modifier = Modifier.padding(start = 16.dp, end = 8.dp),
@@ -408,8 +417,23 @@ private fun ShortcutTile(
     onClick: () -> Unit,
     onLongClick: () -> Unit,
 ) {
+    var appeared by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { appeared = true }
+    val entrance by animateFloatAsState(
+        targetValue = if (appeared) 1f else 0f,
+        animationSpec = tween(YbowMotion.ShortcutInMillis, easing = YbowMotion.ShortcutIn),
+        label = "shortcutEntrance",
+    )
+
     Column(
         modifier = modifier
+            .graphicsLayer {
+                alpha = entrance
+                val scale = YbowMotion.ShortcutStartScale +
+                    (1f - YbowMotion.ShortcutStartScale) * entrance
+                scaleX = scale
+                scaleY = scale
+            }
             .clip(RoundedCornerShape(16.dp))
             .combinedClickable(onClick = onClick, onLongClick = onLongClick)
             .padding(vertical = 4.dp, horizontal = 2.dp),
