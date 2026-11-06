@@ -78,6 +78,7 @@
     <string name="settings_search_engine_desc">Adres çubuğuna yazdığın kelimeler bu motorla aranır.</string>
     <string name="settings_section_appearance">Görünüm</string>
     <string name="settings_theme">Tema</string>
+    <string name="settings_theme_desc">Arayüz açık, koyu ya da sistemine göre görünür.</string>
     <string name="settings_theme_system">Sistem</string>
     <string name="settings_theme_light">Açık</string>
     <string name="settings_theme_dark">Koyu</string>
@@ -95,8 +96,11 @@
     <string name="settings_safe_browsing_desc">Zararlı siteler WebView tarafından engellenir. Her zaman açıktır.</string>
     <string name="settings_section_data">Veriler</string>
     <string name="settings_clear_cache">Önbelleği temizle</string>
+    <string name="settings_clear_cache_desc">Sayfaların geçici dosyalarını siler.</string>
     <string name="settings_clear_cookies">Çerezleri temizle</string>
+    <string name="settings_clear_cookies_desc">Oturumları ve site çerezlerini siler.</string>
     <string name="settings_clear_history">Geçmişi temizle</string>
+    <string name="settings_clear_history_desc">Bu cihazdaki ziyaret kayıtlarını siler.</string>
     <string name="settings_cache_cleared">Önbellek temizlendi</string>
     <string name="settings_cookies_cleared">Çerezler temizlendi</string>
     <string name="settings_history_cleared">Geçmiş temizlendi</string>
