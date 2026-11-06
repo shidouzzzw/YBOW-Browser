@@ -20,6 +20,15 @@ data class Bookmark(
     val createdAt: Long = System.currentTimeMillis(),
 )
 
+/** A user chosen quick access shortcut shown on the home screen. */
+@Entity(tableName = "shortcuts", indices = [Index(value = ["url"], unique = true)])
+data class Shortcut(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0L,
+    val url: String,
+    val title: String,
+    val createdAt: Long = System.currentTimeMillis(),
+)
+
 @Entity(tableName = "downloads")
 data class DownloadRecord(
     @PrimaryKey(autoGenerate = true) val id: Long = 0L,

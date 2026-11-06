@@ -4,10 +4,12 @@ import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 
 @Database(
-    entities = [HistoryEntry::class, Bookmark::class, DownloadRecord::class],
-    version = 1,
+    entities = [HistoryEntry::class, Bookmark::class, Shortcut::class, DownloadRecord::class],
+    version = 2,
     exportSchema = false,
 )
 abstract class YbowDatabase : RoomDatabase() {
@@ -16,10 +18,28 @@ abstract class YbowDatabase : RoomDatabase() {
 
     abstract fun bookmarkDao(): BookmarkDao
 
+    abstract fun shortcutDao(): ShortcutDao
+
     abstract fun downloadDao(): DownloadDao
 
     companion object {
         private const val DATABASE_NAME = "ybow.db"
+
+        /** Adds the shortcuts table without touching the existing history and bookmarks. */
+        private val MIGRATION_1_2 = object : Migration(1, 2) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `shortcuts` (" +
+                        "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                        "`url` TEXT NOT NULL, " +
+                        "`title` TEXT NOT NULL, " +
+                        "`createdAt` INTEGER NOT NULL)"
+                )
+                db.execSQL(
+                    "CREATE UNIQUE INDEX IF NOT EXISTS `index_shortcuts_url` ON `shortcuts` (`url`)"
+                )
+            }
+        }
 
         @Volatile
         private var instance: YbowDatabase? = null
@@ -30,7 +50,10 @@ abstract class YbowDatabase : RoomDatabase() {
                     context.applicationContext,
                     YbowDatabase::class.java,
                     DATABASE_NAME,
-                ).build().also { instance = it }
+                )
+                    .addMigrations(MIGRATION_1_2)
+                    .build()
+                    .also { instance = it }
             }
     }
 }

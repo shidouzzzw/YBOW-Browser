@@ -67,6 +67,25 @@ interface BookmarkDao {
 }
 
 @Dao
+interface ShortcutDao {
+
+    @Query("SELECT * FROM shortcuts ORDER BY createdAt ASC")
+    fun observeAll(): Flow<List<Shortcut>>
+
+    @Query("SELECT COUNT(*) FROM shortcuts WHERE url = :url")
+    suspend fun countByUrl(url: String): Int
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insert(shortcut: Shortcut): Long
+
+    @Update
+    suspend fun update(shortcut: Shortcut)
+
+    @Query("DELETE FROM shortcuts WHERE id = :id")
+    suspend fun deleteById(id: Long)
+}
+
+@Dao
 interface DownloadDao {
 
     @Query("SELECT * FROM downloads ORDER BY createdAt DESC")

@@ -3,22 +3,26 @@ package com.ybow.browser.data
 import android.content.Context
 import com.ybow.browser.data.local.Bookmark
 import com.ybow.browser.data.local.HistoryEntry
+import com.ybow.browser.data.local.Shortcut
 import com.ybow.browser.data.local.YbowDatabase
 import com.ybow.browser.util.UrlTools
 import kotlinx.coroutines.flow.Flow
 
 /**
- * Bookmarks and history. Both live only in the local Room database.
+ * Bookmarks, history and home screen shortcuts. All of them live only in the local
+ * Room database.
  */
 class BrowserRepository(context: Context) {
 
     private val database = YbowDatabase.get(context)
     private val historyDao = database.historyDao()
     private val bookmarkDao = database.bookmarkDao()
+    private val shortcutDao = database.shortcutDao()
 
     val history: Flow<List<HistoryEntry>> = historyDao.observeAll()
     val recentHistory: Flow<List<HistoryEntry>> = historyDao.observeRecent(12)
     val bookmarks: Flow<List<Bookmark>> = bookmarkDao.observeAll()
+    val shortcuts: Flow<List<Shortcut>> = shortcutDao.observeAll()
 
     fun searchHistory(query: String): Flow<List<HistoryEntry>> =
         if (query.isBlank()) historyDao.observeAll() else historyDao.search(query)
@@ -65,6 +69,22 @@ class BrowserRepository(context: Context) {
     suspend fun removeBookmarkByUrl(url: String) = bookmarkDao.deleteByUrl(url)
 
     suspend fun isBookmarked(url: String): Boolean = bookmarkDao.countByUrl(url) > 0
+
+    // ------------------------------------------------------------- shortcuts
+
+    /** Returns false when the URL is already saved as a shortcut. */
+    suspend fun addShortcut(url: String, title: String): Boolean {
+        if (!UrlTools.isHttpUrl(url)) return false
+        if (shortcutDao.countByUrl(url) > 0) return false
+        shortcutDao.insert(
+            Shortcut(url = url, title = title.trim().ifBlank { UrlTools.displayUrl(url) })
+        )
+        return true
+    }
+
+    suspend fun updateShortcut(shortcut: Shortcut) = shortcutDao.update(shortcut)
+
+    suspend fun deleteShortcut(shortcut: Shortcut) = shortcutDao.deleteById(shortcut.id)
 
     private companion object {
         const val VISIT_MERGE_WINDOW_MS = 60_000L
