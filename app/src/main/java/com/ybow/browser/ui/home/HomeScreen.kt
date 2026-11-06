@@ -2,7 +2,10 @@ package com.ybow.browser.ui.home
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,48 +20,69 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.ArrowForward
 import androidx.compose.material.icons.rounded.BookmarkBorder
 import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.VisibilityOff
 import androidx.compose.material.icons.rounded.Waves
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ybow.browser.R
-import com.ybow.browser.data.local.Bookmark
+import com.ybow.browser.data.local.Shortcut
 import com.ybow.browser.ui.browser.BottomBarContentPadding
-import com.ybow.browser.ui.components.FaviconBadge
+import com.ybow.browser.util.FaviconStore
+import com.ybow.browser.util.UrlTools
 
 object HomeScreenKeys
 
 @Composable
 fun HomeScreen(
     searchEngineLabel: String,
-    bookmarks: List<Bookmark>,
+    shortcuts: List<Shortcut>,
     onOpenSearch: () -> Unit,
-    onOpenBookmark: (Bookmark) -> Unit,
+    onOpenShortcut: (Shortcut) -> Unit,
+    onAddShortcut: (url: String, name: String) -> Unit,
+    onUpdateShortcut: (Shortcut, url: String, name: String) -> Unit,
+    onDeleteShortcut: (Shortcut) -> Unit,
     onShowBookmarks: () -> Unit,
     onIncognito: () -> Unit,
 ) {
     val colors = MaterialTheme.colorScheme
+    var editorOpen by remember { mutableStateOf(false) }
+    var editing by remember { mutableStateOf<Shortcut?>(null) }
+    var actionTarget by remember { mutableStateOf<Shortcut?>(null) }
 
     Box(modifier = Modifier.fillMaxSize()) {
         SeaWaves()
@@ -179,8 +203,27 @@ fun HomeScreen(
                     text = stringResource(R.string.home_quick_access),
                     style = MaterialTheme.typography.titleLarge,
                     color = colors.onBackground,
-                    modifier = Modifier.weight(1f),
                 )
+                Spacer(Modifier.width(8.dp))
+                Surface(
+                    onClick = {
+                        editing = null
+                        editorOpen = true
+                    },
+                    shape = CircleShape,
+                    color = colors.primary.copy(alpha = 0.16f),
+                    modifier = Modifier.size(28.dp),
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = Icons.Rounded.Add,
+                            contentDescription = stringResource(R.string.shortcut_add),
+                            tint = colors.primary,
+                            modifier = Modifier.size(17.dp),
+                        )
+                    }
+                }
+                Spacer(Modifier.weight(1f))
                 TextButton(onClick = onShowBookmarks) {
                     Text(
                         text = stringResource(R.string.bookmarks_title),
@@ -190,9 +233,9 @@ fun HomeScreen(
                 }
             }
 
-            if (bookmarks.isEmpty()) {
+            if (shortcuts.isEmpty()) {
                 Surface(
-                    shape = MaterialTheme.shapes.large,
+                    shape = RoundedCornerShape(18.dp),
                     color = colors.surface.copy(alpha = 0.85f),
                     border = BorderStroke(1.dp, colors.outlineVariant.copy(alpha = 0.7f)),
                     modifier = Modifier
@@ -200,36 +243,38 @@ fun HomeScreen(
                         .padding(top = 6.dp),
                 ) {
                     Row(
-                        modifier = Modifier.padding(16.dp),
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Icon(
                             imageVector = Icons.Rounded.BookmarkBorder,
                             contentDescription = null,
                             tint = colors.primary,
+                            modifier = Modifier.size(18.dp),
                         )
-                        Spacer(Modifier.width(14.dp))
+                        Spacer(Modifier.width(10.dp))
                         Text(
-                            text = stringResource(R.string.home_no_bookmarks),
-                            style = MaterialTheme.typography.bodyMedium,
+                            text = stringResource(R.string.shortcut_empty),
+                            style = MaterialTheme.typography.bodySmall,
                             color = colors.onSurfaceVariant,
                             modifier = Modifier.weight(1f),
                         )
                     }
                 }
             } else {
-                bookmarks.take(8).chunked(4).forEach { rowItems ->
+                shortcuts.chunked(4).forEach { rowItems ->
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(vertical = 5.dp),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        rowItems.forEach { bookmark ->
-                            QuickAccessTile(
-                                bookmark = bookmark,
+                        rowItems.forEach { shortcut ->
+                            ShortcutTile(
+                                shortcut = shortcut,
                                 modifier = Modifier.weight(1f),
-                                onClick = { onOpenBookmark(bookmark) },
+                                onClick = { onOpenShortcut(shortcut) },
+                                onLongClick = { actionTarget = shortcut },
                             )
                         }
                         repeat(4 - rowItems.size) {
@@ -303,40 +348,188 @@ fun HomeScreen(
             Spacer(Modifier.height(BottomBarContentPadding))
         }
     }
+
+    if (editorOpen) {
+        ShortcutEditorDialog(
+            initial = editing,
+            onDismiss = {
+                editorOpen = false
+                editing = null
+            },
+            onConfirm = { url, name ->
+                val target = editing
+                if (target == null) onAddShortcut(url, name) else onUpdateShortcut(target, url, name)
+                editorOpen = false
+                editing = null
+            },
+        )
+    }
+
+    actionTarget?.let { shortcut ->
+        AlertDialog(
+            onDismissRequest = { actionTarget = null },
+            title = { Text(shortcut.title) },
+            text = {
+                Column {
+                    TextButton(
+                        onClick = {
+                            actionTarget = null
+                            editing = shortcut
+                            editorOpen = true
+                        },
+                    ) {
+                        Text(stringResource(R.string.shortcut_edit), color = colors.primary)
+                    }
+                    TextButton(
+                        onClick = {
+                            actionTarget = null
+                            onDeleteShortcut(shortcut)
+                        },
+                    ) {
+                        Text(stringResource(R.string.shortcut_delete), color = colors.primary)
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = {
+                TextButton(onClick = { actionTarget = null }) {
+                    Text(stringResource(R.string.shortcut_cancel))
+                }
+            },
+        )
+    }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun QuickAccessTile(
-    bookmark: Bookmark,
+private fun ShortcutTile(
+    shortcut: Shortcut,
     modifier: Modifier = Modifier,
     onClick: () -> Unit,
+    onLongClick: () -> Unit,
 ) {
-    Surface(
-        onClick = onClick,
-        shape = RoundedCornerShape(20.dp),
-        color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(
-            1.dp,
-            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.7f),
-        ),
-        modifier = modifier,
+    Column(
+        modifier = modifier
+            .clip(RoundedCornerShape(16.dp))
+            .combinedClickable(onClick = onClick, onLongClick = onLongClick)
+            .padding(vertical = 4.dp, horizontal = 2.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Column(
-            modifier = Modifier.padding(vertical = 12.dp, horizontal = 6.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
+        ShortcutIcon(url = shortcut.url, size = 46.dp)
+        Spacer(Modifier.height(6.dp))
+        Text(
+            text = shortcut.title,
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            textAlign = TextAlign.Center,
+        )
+    }
+}
+
+/** Round favicon for a shortcut, falling back to the site's first letter. */
+@Composable
+private fun ShortcutIcon(url: String, size: Dp) {
+    val colors = MaterialTheme.colorScheme
+    var icon by remember(url) { mutableStateOf(FaviconStore.cached(url)) }
+
+    LaunchedEffect(url) {
+        if (icon == null) icon = FaviconStore.load(url)
+    }
+
+    val bitmap: ImageBitmap? = icon
+    if (bitmap != null) {
+        Image(
+            bitmap = bitmap,
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier
+                .size(size)
+                .clip(CircleShape)
+                .background(colors.surface),
+        )
+    } else {
+        val letter = UrlTools.hostOf(url)
+            .firstOrNull { it.isLetterOrDigit() }
+            ?.uppercaseChar()
+            ?.toString()
+            .orEmpty()
+        Box(
+            modifier = Modifier
+                .size(size)
+                .clip(CircleShape)
+                .background(colors.primary.copy(alpha = 0.18f)),
+            contentAlignment = Alignment.Center,
         ) {
-            FaviconBadge(url = bookmark.url, size = 36.dp)
-            Spacer(Modifier.height(8.dp))
             Text(
-                text = bookmark.title,
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-                textAlign = TextAlign.Center,
+                text = letter,
+                style = MaterialTheme.typography.titleMedium,
+                color = colors.primary,
             )
         }
     }
+}
+
+@Composable
+private fun ShortcutEditorDialog(
+    initial: Shortcut?,
+    onDismiss: () -> Unit,
+    onConfirm: (url: String, name: String) -> Unit,
+) {
+    var address by remember { mutableStateOf(initial?.url.orEmpty()) }
+    var name by remember { mutableStateOf(initial?.title.orEmpty()) }
+    val colors = MaterialTheme.colorScheme
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                stringResource(
+                    if (initial == null) R.string.shortcut_add_title else R.string.shortcut_edit_title,
+                ),
+            )
+        },
+        text = {
+            Column {
+                OutlinedTextField(
+                    value = address,
+                    onValueChange = { address = it },
+                    singleLine = true,
+                    label = { Text(stringResource(R.string.shortcut_url_label)) },
+                    placeholder = { Text(stringResource(R.string.shortcut_url_hint)) },
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Uri,
+                        imeAction = ImeAction.Next,
+                    ),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Spacer(Modifier.height(10.dp))
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    singleLine = true,
+                    label = { Text(stringResource(R.string.shortcut_name_label)) },
+                    placeholder = { Text(stringResource(R.string.shortcut_name_hint)) },
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = { onConfirm(address, name) },
+                enabled = address.isNotBlank(),
+            ) {
+                Text(stringResource(R.string.shortcut_save), color = colors.primary)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.shortcut_cancel))
+            }
+        },
+    )
 }
 
 /** Two quiet wave bands anchored to the bottom of the home content. */
