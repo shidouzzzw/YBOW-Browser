@@ -47,6 +47,7 @@ fun BrowserScreen(
     val settings by viewModel.settings.collectAsStateWithLifecycle()
     val bookmarks by viewModel.bookmarks.collectAsStateWithLifecycle(emptyList())
     val history by viewModel.history.collectAsStateWithLifecycle(emptyList())
+    val shortcuts by viewModel.shortcuts.collectAsStateWithLifecycle(emptyList())
     var menuOpen by remember { mutableStateOf(false) }
     var searchOpen by remember { mutableStateOf(false) }
     val clipboard = LocalClipboardManager.current
@@ -100,9 +101,14 @@ fun BrowserScreen(
                 if (!hasPage) {
                     HomeScreen(
                         searchEngineLabel = settings.searchEngine.label,
-                        bookmarks = bookmarks,
+                        shortcuts = shortcuts,
                         onOpenSearch = { searchOpen = true },
-                        onOpenBookmark = { bookmark -> viewModel.openUrlInNewTab(bookmark.url) },
+                        onOpenShortcut = { shortcut -> viewModel.openUrlInNewTab(shortcut.url) },
+                        onAddShortcut = { url, name -> viewModel.addShortcut(url, name) },
+                        onUpdateShortcut = { shortcut, url, name ->
+                            viewModel.updateShortcut(shortcut, url, name)
+                        },
+                        onDeleteShortcut = { shortcut -> viewModel.deleteShortcut(shortcut) },
                         onShowBookmarks = { onNavigate(YbowScreen.Bookmarks) },
                         onIncognito = { viewModel.openNewTab(incognito = true) },
                     )

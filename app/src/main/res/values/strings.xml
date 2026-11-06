@@ -46,6 +46,24 @@
     <string name="home_incognito">Gizli mod</string>
     <string name="home_incognito_hint">Bu sekmede geçmiş kaydedilmez.</string>
 
+    <!-- Quick access shortcuts -->
+    <string name="shortcut_add">Kısayol ekle</string>
+    <string name="shortcut_add_title">Kısayol ekle</string>
+    <string name="shortcut_edit_title">Kısayolu düzenle</string>
+    <string name="shortcut_url_label">Site adresi</string>
+    <string name="shortcut_url_hint">ornek.com</string>
+    <string name="shortcut_name_label">Ad (isteğe bağlı)</string>
+    <string name="shortcut_name_hint">Kısa ad</string>
+    <string name="shortcut_save">Kaydet</string>
+    <string name="shortcut_cancel">Vazgeç</string>
+    <string name="shortcut_edit">Düzenle</string>
+    <string name="shortcut_delete">Sil</string>
+    <string name="shortcut_saved">Kısayol kaydedildi</string>
+    <string name="shortcut_deleted">Kısayol silindi</string>
+    <string name="shortcut_duplicate">Bu adres zaten kısayollarda</string>
+    <string name="shortcut_invalid">Geçerli bir site adresi yaz</string>
+    <string name="shortcut_empty">Kısayol eklediğinde burada görünecek.</string>
+
     <!-- Tabs -->
     <string name="tabs_title">Sekmeler</string>
     <string name="tabs_count">%1$d sekme</string>
