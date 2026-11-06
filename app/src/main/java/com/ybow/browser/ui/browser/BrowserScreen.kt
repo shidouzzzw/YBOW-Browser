@@ -80,12 +80,15 @@ fun BrowserScreen(
                 .windowInsetsPadding(WindowInsets.statusBars)
                 .imePadding(),
         ) {
-            AddressBar(
-                tab = tab,
-                onOpenSearch = { searchOpen = true },
-                onReload = { viewModel.reload() },
-                onStop = { viewModel.stopLoading() },
-            )
+            // The home screen has no top bar at all: its own search box is the only entry point.
+            if (hasPage) {
+                AddressBar(
+                    tab = tab,
+                    onOpenSearch = { searchOpen = true },
+                    onReload = { viewModel.reload() },
+                    onStop = { viewModel.stopLoading() },
+                )
+            }
 
             Box(
                 modifier = Modifier
