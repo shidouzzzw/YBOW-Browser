@@ -31,6 +31,14 @@
     <string name="menu_copy">Bağlantıyı kopyala</string>
     <string name="menu_settings">Ayarlar</string>
 
+    <!-- Search screen -->
+    <string name="search_action">Ara: %1$s</string>
+    <string name="search_run_hint">Yazdığını ara ve sonuçları aç</string>
+    <string name="search_suggestions">Öneriler</string>
+    <string name="search_recent">Son ziyaretler</string>
+    <string name="search_no_suggestions">Eşleşen öneri yok. Aramak için üstteki satıra dokun.</string>
+    <string name="search_fill_hint">Arama alanına taşı</string>
+
     <!-- Home -->
     <string name="home_quick_access">Hızlı erişim</string>
     <string name="home_no_bookmarks">Yer imi eklediğinde burada görünecek.</string>
