@@ -2,35 +2,41 @@ package com.ybow.browser.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// YBOW palette: deep ink surfaces with a signal-teal accent.
-val Ink950 = Color(0xFF070B11)
-val Ink900 = Color(0xFF0C121B)
-val Ink800 = Color(0xFF16202B)
-val Ink700 = Color(0xFF1E2A35)
-val Ink600 = Color(0xFF2C3A47)
+// YBOW "tide" palette: paper-white surfaces, ocean-blue accents, sand highlights.
+// Light theme reads like a calm morning sea, dark theme like deep water at night.
 
-val Mist50 = Color(0xFFF6F8FA)
-val Mist100 = Color(0xFFEDF1F4)
-val Mist200 = Color(0xFFDCE3E8)
-val Mist300 = Color(0xFFC6D0D8)
-
-val Slate600 = Color(0xFF47555F)
-val Slate400 = Color(0xFFA9BCCB)
-
-val Teal500 = Color(0xFF00C2A8)
-val Teal400 = Color(0xFF4FE3C8)
-val Teal700 = Color(0xFF0A6F60)
-val Teal900 = Color(0xFF0B4A41)
-val Teal050 = Color(0xFFC6F2EA)
-
-val Ember500 = Color(0xFFFF8A3D)
-val Ember300 = Color(0xFFFFB68A)
-val Ember900 = Color(0xFF9A4A00)
-val Ember050 = Color(0xFFFFE7D6)
-
+// Anchor tones
 val Snow = Color(0xFFFFFFFF)
-val Carbon = Color(0xFF0B1117)
-val CarbonSoft = Color(0xFF121B26)
+val Foam = Color(0xFFF5FAFD)
+val Paper = Color(0xFFFFFFFF)
+val HarborInk = Color(0xFF0B2A3B)
+val Tide = Color(0xFF4A6F82)
 
+// Ocean blues
+val Ocean700 = Color(0xFF0B5C86)
+val Ocean600 = Color(0xFF1273A3)
+val Ocean800 = Color(0xFF073B57)
+val ShallowWater = Color(0xFFDDF0FB)
+val MistBlue = Color(0xFFEAF4FA)
+val Ripple = Color(0xFFD5E6F1)
+
+// Supporting tones
+val Surf = Color(0xFF12757F)
+val SurfSoft = Color(0xFFE1F3F2)
+val Sand = Color(0xFFB4763A)
+val SandSoft = Color(0xFFFBEEE0)
+
+// Deep water (dark theme)
+val Abyss = Color(0xFF05161F)
+val DeepSea = Color(0xFF0A202C)
+val DeepSeaSoft = Color(0xFF102B39)
+val DeepSeaHigh = Color(0xFF143140)
+val SeaGlow = Color(0xFF5FCDF4)
+val SeaGlowDeep = Color(0xFF0E4763)
+val SeaFoamText = Color(0xFFDDF0FA)
+val SeaMist = Color(0xFF93B3C4)
+val SeaLine = Color(0xFF1B3B4C)
+
+// Semantic
 val Danger = Color(0xFFB3261E)
 val DangerDark = Color(0xFFFFB4AB)
